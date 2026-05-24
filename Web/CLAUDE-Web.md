@@ -17,28 +17,29 @@ who uses it, and what is the rough scale it is designed for. -->
 
 ### Backend
 
-| Component       | Choice                        | Reason                              |
-|-----------------|-------------------------------|-------------------------------------|
-| Language        | <!-- Go/Python -->            | <!-- Why -->                        |
-| Web framework   | <!-- gin, chi, FastAPI, Flask, etc. --> | <!-- Why -->           |
-| Database        | <!-- PostgreSQL/SQLite/etc. --> | <!-- Why -->                       |
-| ORM / query     | <!-- sqlc, GORM, SQLAlchemy, etc. --> | <!-- Why -->               |
-| Auth            | <!-- JWT, session, OAuth2, etc. --> | <!-- Why -->                   |
-| Key dependency  | <!-- name -->                 | <!-- What it provides -->           |
+| Component       | Choice                                           | Reason                    |
+|-----------------|--------------------------------------------------|---------------------------|
+| Language        | <!-- Go / Python / PHP -->                       | <!-- Why -->              |
+| Framework       | <!-- gin, chi, FastAPI, Flask, Laravel, etc. --> | <!-- Why -->              |
+| Database        | <!-- PostgreSQL / SQLite / MySQL -->             | <!-- Why -->              |
+| ORM / query     | <!-- sqlc, GORM, SQLAlchemy, Eloquent, etc. -->  | <!-- Why -->              |
+| Auth            | <!-- JWT, session, OAuth2, Laravel Sanctum/Passport --> | <!-- Why -->       |
+| Key dependency  | <!-- name -->                                    | <!-- What it provides --> |
 
 ### Frontend
 
-| Component       | Choice                        | Reason                              |
-|-----------------|-------------------------------|-------------------------------------|
-| Approach        | <!-- SPA, SSR, MPA, HTMX, templates --> | <!-- Why -->            |
-| Framework       | <!-- React, Vue, HTMX, Jinja2, etc. --> | <!-- Why -->            |
-| Build tool      | <!-- Vite, esbuild, none -->  | <!-- Why -->                        |
-| CSS approach    | <!-- Tailwind, plain CSS, etc. --> | <!-- Why -->                   |
-| Key dependency  | <!-- name -->                 | <!-- What it provides -->           |
+| Component       | Choice                                                  | Reason       |
+|-----------------|---------------------------------------------------------|--------------|
+| Approach        | <!-- SPA, SSR, MPA, HTMX, Blade, Inertia.js -->        | <!-- Why --> |
+| Framework       | <!-- React, Vue, HTMX, Blade templates, etc. -->        | <!-- Why --> |
+| Build tool      | <!-- Vite, esbuild, none -->                            | <!-- Why --> |
+| CSS approach    | <!-- Tailwind, plain CSS, etc. -->                      | <!-- Why --> |
 
 ---
 
 ## Repository Layout
+
+### Go / Python Projects
 
 ```
 project_name/
@@ -49,27 +50,69 @@ project_name/
 - web/                  # All frontend source
   - src/                # Frontend source files (JS/TS/CSS)
   - public/             # Static files served as-is
-  - dist/               # Built frontend output (do not edit; gitignored)
+  - dist/               # Built frontend output (gitignored)
 - templates/            # Server-side HTML templates (if applicable)
 - migrations/           # Database migration files (numbered, sequential)
 - scripts/              # Helper, build, and deployment scripts
 - tests/                # Test suite
-  - unit/               # Unit tests
-  - integration/        # Integration tests (require running dependencies)
-  - e2e/                # End-to-end tests (require full stack)
-- docs/                 # Additional documentation
-- .clauderules          # AI session behavioral rules
-- ARCHITECTURE.md       # Component and data flow reference
-- CHANGELOG.md          # Version history (Keep a Changelog format)
-- CLAUDE.md             # This file
-- CONTRIBUTING.md       # Contribution guidelines
-- PLANNING.md           # Goals, milestones, open questions
-- README.md             # Public-facing documentation
-- LICENSE               # Project license
 - .env.example          # Example environment variables (never .env itself)
+- .clauderules
+- ARCHITECTURE.md
+- CHANGELOG.md
+- CLAUDE.md
+- CONTRIBUTING.md
+- PLANNING.md
+- README.md
+- LICENSE
 ```
 
-<!-- Annotate any non-obvious directories or files specific to this project. -->
+### Laravel Projects
+
+```
+project_name/
+- app/
+  - Console/            # Artisan commands
+  - Exceptions/         # Exception handler
+  - Http/
+    - Controllers/      # Thin controllers - no business logic
+    - Middleware/        # HTTP middleware
+    - Requests/         # Form request validation classes
+    - Resources/        # API resource transformers
+  - Models/             # Eloquent models
+  - Providers/          # Service providers
+  - Services/           # Business logic layer (not a Laravel default - always create this)
+  - Repositories/       # Data access layer (always use; never query Eloquent in controllers)
+- bootstrap/            # Framework bootstrap files (do not edit)
+- config/               # Application config files
+- database/
+  - factories/          # Model factories for testing
+  - migrations/         # Laravel migration files
+  - seeders/            # Database seeders
+- public/               # Web server document root (index.php, compiled assets)
+- resources/
+  - css/                # Source CSS
+  - js/                 # Source JS (compiled by Vite)
+  - views/              # Blade templates (full-stack only)
+- routes/
+  - api.php             # API routes
+  - web.php             # Web/Blade routes (full-stack only)
+  - console.php         # Artisan route closures
+- storage/              # Logs, cache, uploaded files (gitignored except for .gitkeep)
+- tests/
+  - Feature/            # Feature/integration tests
+  - Unit/               # Unit tests
+- .env.example          # Example environment variables (never .env itself)
+- .clauderules
+- ARCHITECTURE.md
+- CHANGELOG.md
+- CLAUDE.md
+- CONTRIBUTING.md
+- PLANNING.md
+- README.md
+- LICENSE
+```
+
+<!-- Annotate any non-obvious directories specific to this project. -->
 
 ---
 
@@ -78,79 +121,101 @@ project_name/
 ### Prerequisites
 
 ```bash
-# Backend
-# Go 1.22+ or Python 3.11+
+# Go
+# Go 1.22+
 
-# Frontend (if applicable)
-# Node.js 20+ and npm/pnpm
+# Python
+# Python 3.11+, pip
 
-# Database
-# PostgreSQL 15+ / SQLite (no server required)
+# PHP / Laravel
+# PHP 8.2+
+# Composer 2.x
+# Node.js 20+ (for Vite asset compilation)
+# A supported database: PostgreSQL, MySQL, or SQLite
 ```
 
 ### Environment Setup
 
 ```bash
-# Copy the example env file and fill in values
+# All project types
 cp .env.example .env
-# Edit .env - never commit .env to version control
+# Edit .env and fill in required values - never commit .env
 ```
 
 ### Database Setup
 
 ```bash
-# Create the database (PostgreSQL example)
+# PostgreSQL (all project types)
 createdb app_name_dev
 
-# Run migrations
-# Go (migrate / goose / atlas)
+# Go - run migrations
 migrate -path migrations/ -database "${DATABASE_URL}" up
 
-# Python (Alembic)
+# Python - run migrations
 alembic upgrade head
+
+# Laravel - generate app key and run migrations
+php artisan key:generate
+php artisan migrate
+
+# Laravel - seed development data (if seeders exist)
+php artisan db:seed
 ```
 
 ### Backend
 
 ```bash
 # Go
-go build -o bin/app_name ./cmd/app_name
-./bin/app_name
-
-# Or run directly
 go run ./cmd/app_name
 
-# Python
-pip install -e .
-python -m app_name
-# or
-uvicorn app_name.main:app --reload  # FastAPI/Starlette
-flask run                            # Flask
+# Python (FastAPI / Starlette)
+uvicorn app_name.main:app --reload
+
+# Python (Flask)
+flask run
+
+# Laravel
+php artisan serve
+# Default: http://localhost:8000
 ```
 
 ### Frontend
 
 ```bash
-# Install dependencies
+# Install dependencies (all project types using Vite/npm)
 npm install
 
 # Development server with hot reload
 npm run dev
 
-# Production build (outputs to web/dist/)
+# Production build
 npm run build
 ```
 
-### Full Stack Development
+### Laravel-Specific Development Commands
 
 ```bash
-# Run backend and frontend concurrently
-# Option A: two terminals
-#   Terminal 1: go run ./cmd/app_name  (or equivalent)
-#   Terminal 2: npm run dev
+# List all available Artisan commands
+php artisan list
 
-# Option B: process manager
-# scripts/dev.sh  (if provided)
+# Clear all caches (run after config or route changes)
+php artisan optimize:clear
+
+# Run queue worker (required if the app dispatches jobs)
+php artisan queue:work
+
+# Run the scheduler locally (required if scheduled tasks are defined)
+php artisan schedule:work
+
+# Open a REPL (Tinker)
+php artisan tinker
+
+# Generate a new controller / model / migration / etc.
+php artisan make:controller ExampleController
+php artisan make:model Example --migration
+php artisan make:request StoreExampleRequest
+php artisan make:resource ExampleResource
+php artisan make:service ExampleService   # requires a custom stub or manual creation
 ```
 
 ---
@@ -158,27 +223,31 @@ npm run build
 ## Running Tests
 
 ```bash
-# Backend unit tests
 # Go
 go test ./...
 go test -race ./...
 
 # Python
 pytest tests/unit/
-
-# Integration tests (requires running database)
-# Go
-go test ./tests/integration/...
-
-# Python
 pytest tests/integration/
 
-# End-to-end tests (requires full stack running)
-# playwright / cypress / etc.
-npm run test:e2e
+# Laravel
+php artisan test
+# or
+./vendor/bin/phpunit
 
-# Frontend tests
+# Laravel - specific test suite
+php artisan test --testsuite=Unit
+php artisan test --testsuite=Feature
+
+# Laravel - with coverage (requires Xdebug or PCOV)
+php artisan test --coverage
+
+# Frontend
 npm run test
+
+# End-to-end (full stack required)
+npm run test:e2e
 ```
 
 All tests must pass before committing or opening a pull request. Never suggest a PR
@@ -191,60 +260,87 @@ with failing tests. If tests cannot be run, say so explicitly.
 Web applications are configured exclusively via environment variables and the `.env`
 file. The `~/.app_name/` home directory convention does not apply here.
 
-- `.env` - local development values; never committed to version control
-- `.env.example` - committed to version control; all keys present, no real secrets
-- Production values set via the deployment environment (see README.md)
+- `.env` - local development values; never committed
+- `.env.example` - committed; all keys present, no real secrets, descriptive placeholders
+
+### Laravel Configuration Notes
+
+- Laravel's config files in `config/` read from `.env` via the `env()` helper
+- Never call `env()` outside of `config/` files - use `config('key')` everywhere else
+- After any change to `.env` or config files in development, run:
+  `php artisan config:clear`
+- In production, config is cached: `php artisan config:cache` - never call `env()`
+  in code that runs after this point, as it will return null
 
 ### Environment Variables
 
-| Variable            | Required | Default       | Description                         |
-|---------------------|----------|---------------|-------------------------------------|
-| `DATABASE_URL`      | Yes      | -             | Full database connection string     |
-| `SECRET_KEY`        | Yes      | -             | Secret key for signing sessions/JWT |
-| `ALLOWED_HOSTS`     | Yes      | `localhost`   | Comma-separated list of allowed hostnames |
-| `DEBUG`             | No       | `false`       | Enable debug mode (never true in production) |
-| `LOG_LEVEL`         | No       | `info`        | Log verbosity                       |
-| `LOG_FORMAT`        | No       | `text`        | Log format: text or json            |
-| `PORT`              | No       | `8080`        | Port to listen on                   |
-| <!-- VAR -->        |          |               | <!-- description -->                |
-
-Never hardcode secrets in source files. Never commit `.env`. Never log secret values.
+| Variable        | Required | Default     | Description                                    |
+|-----------------|----------|-------------|------------------------------------------------|
+| `APP_KEY`       | Yes (Laravel) | -      | Laravel application key - generate with `php artisan key:generate` |
+| `APP_ENV`       | Yes (Laravel) | `local` | Environment: local, staging, production      |
+| `APP_DEBUG`     | No (Laravel) | `false` | Debug mode - never true in production         |
+| `APP_URL`       | Yes (Laravel) | -      | Full base URL of the application              |
+| `DATABASE_URL`  | Yes (non-Laravel) | -  | Full database connection string               |
+| `DB_CONNECTION` | Yes (Laravel) | `mysql` | Database driver: mysql, pgsql, sqlite        |
+| `DB_HOST`       | Yes (Laravel) | `127.0.0.1` | Database host                            |
+| `DB_PORT`       | Yes (Laravel) | `3306` | Database port                                |
+| `DB_DATABASE`   | Yes (Laravel) | -      | Database name                                 |
+| `DB_USERNAME`   | Yes (Laravel) | -      | Database user                                 |
+| `DB_PASSWORD`   | Yes (Laravel) | -      | Database password                             |
+| `SECRET_KEY`    | Yes (non-Laravel) | -  | Secret key for sessions / JWT signing         |
+| `LOG_LEVEL`     | No       | `info`      | Log verbosity                                  |
+| <!-- VAR -->    |          |             | <!-- description -->                           |
 
 ---
 
 ## Database Migrations
 
-- All schema changes must be expressed as migration files in `migrations/`
-- Migrations are numbered sequentially: `001_create_users.sql`, `002_add_index.sql`
-- Never edit a migration that has already been applied to any environment
-- Migrations must be reversible where possible (include a down migration)
-- Run migrations before starting the server after pulling new changes
+### Go
 
 ```bash
-# Check current migration state
-# Go (migrate)
-migrate -path migrations/ -database "${DATABASE_URL}" version
-
-# Python (Alembic)
-alembic current
-
-# Apply pending migrations
-# Go
 migrate -path migrations/ -database "${DATABASE_URL}" up
-
-# Python
-alembic upgrade head
+migrate -path migrations/ -database "${DATABASE_URL}" version
+migrate -path migrations/ -database "${DATABASE_URL}" down 1
 ```
+
+### Python (Alembic)
+
+```bash
+alembic upgrade head
+alembic current
+alembic downgrade -1
+```
+
+### Laravel
+
+```bash
+# Apply pending migrations
+php artisan migrate
+
+# Check migration status
+php artisan migrate:status
+
+# Roll back the last batch
+php artisan migrate:rollback
+
+# Roll back all migrations and re-run (development only - destroys data)
+php artisan migrate:fresh
+
+# Roll back, re-run, and re-seed (development only)
+php artisan migrate:fresh --seed
+```
+
+**Never run `migrate:fresh` or `migrate:rollback` in production without explicit
+instruction. Never run seeders in production unless they are designated safe
+production seeders.**
 
 ---
 
 ## API Conventions
 
-<!-- Describe the API style and conventions used in this project. -->
-
 - Style: <!-- REST / GraphQL / RPC -->
-- Base path: <!-- /api/v1 -->
-- Auth: <!-- Bearer token in Authorization header / session cookie -->
+- Base path: <!-- /api/v1 (Go/Python) or /api/v1 (Laravel - defined in routes/api.php) -->
+- Auth: <!-- Bearer token / session cookie / Laravel Sanctum / Laravel Passport -->
 - Error response format:
 
 ```json
@@ -256,42 +352,75 @@ alembic upgrade head
 ```
 
 - All responses include a `X-Request-ID` header for log correlation
-- <!-- Any other API conventions -->
+- Laravel API Resources (`app/Http/Resources/`) are used for all response shaping -
+  never return Eloquent models directly from controllers
+
+---
+
+## Laravel Usage Modes
+
+### API Backend Only
+
+- Routes defined in `routes/api.php` only
+- All responses via API Resources (`app/Http/Resources/`)
+- Auth via Laravel Sanctum (token-based) or Passport (OAuth2)
+- No Blade templates; `resources/views/` unused
+- CORS configured via `config/cors.php`
+
+### Full-Stack with Blade
+
+- Web routes in `routes/web.php`; API routes in `routes/api.php`
+- Views in `resources/views/` as `.blade.php` files
+- Auth via Laravel's session-based auth (Sanctum with SPA or Breeze/Jetstream scaffold)
+- Vite compiles `resources/css/` and `resources/js/` into `public/build/`
+
+### Inertia.js (Vue / React)
+
+- Web routes in `routes/web.php` return Inertia responses
+- Frontend components in `resources/js/Pages/`
+- Shared data passed via Inertia's `share()` in `HandleInertiaRequests` middleware
+- Auth via Laravel Sanctum with SPA cookie authentication
+- Vite compiles the frontend; no separate dev server routing needed
 
 ---
 
 ## Frontend Conventions
 
-<!-- Describe the frontend structure and conventions. -->
-
 ```
-web/src/
+web/src/  (Go/Python)  or  resources/js/  (Laravel)
 - components/     # Reusable UI components
 - pages/          # Page-level components / route handlers
-- api/            # API client functions (one file per resource)
+- api/            # API client functions - one file per resource (Go/Python)
 - styles/         # Global styles and theme definitions
 - utils/          # Shared utility functions
 ```
 
-- API calls are centralized in `web/src/api/` - never fetch directly from components
-- No inline styles - use <!-- Tailwind classes / CSS modules / stylesheet -->
-- <!-- Any other frontend conventions -->
+- API calls centralized in `api/` (Go/Python) - never fetch from components directly
+- No inline styles - use Tailwind classes / CSS modules / stylesheet
+- <!-- Any other project-specific frontend conventions -->
 
 ---
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders for this project:
+Behavioral rules are in `.clauderules`. Key reminders:
 
 - ASCII only in code and comments - no emoji, no em-dashes
-- Underscores in filenames for backend; frontend may follow its own ecosystem
-  conventions (hyphens in component filenames are acceptable if consistent)
 - Explain WHY in comments, not WHAT
-- Errors must be handled explicitly - no silent failures
-- Never log or expose secrets, tokens, or PII
+- Errors handled explicitly - no silent failures
 - Conventional commits: `type(scope): description`
 
-### Backend Language Notes
+### PHP / Laravel Specific
+
+- PSR-12 coding standard enforced via Laravel Pint: `./vendor/bin/pint`
+- Type hints required on all method signatures (PHP 8.x named arguments encouraged)
+- Controllers are thin - delegate immediately to a Service class
+- No business logic in Models, Controllers, or Middleware
+- No direct Eloquent queries outside of Repository classes
+- Validation always in Form Request classes (`app/Http/Requests/`) - never in controllers
+- Never use `dd()`, `dump()`, `var_dump()`, or `ray()` in committed code
+
+### Go / Python Specific
 
 ```
 <!-- Add project-specific style notes here -->
@@ -300,21 +429,13 @@ Behavioral rules are in `.clauderules`. Key reminders for this project:
 <!-- Python: type hints required on all public functions -->
 ```
 
-### Frontend Notes
-
-```
-<!-- Add project-specific frontend style notes here -->
-<!-- Example: components are functional only - no class components -->
-<!-- Example: no direct DOM manipulation - always go through the framework -->
-```
-
 ---
 
 ## Changelog and Versioning
 
 - Format: Keep a Changelog (https://keepachangelog.com)
 - Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
+- CHANGELOG.md updated in the same commit as the change
 - Unreleased changes go under `## [Unreleased]`
 - Do not create a new version entry - that is the maintainer's decision
 
@@ -324,5 +445,4 @@ Behavioral rules are in `.clauderules`. Key reminders for this project:
 
 See PLANNING.md for active goals, open questions, and pending decisions.
 
-<!-- Optionally note the current sprint or immediate next task here. -->
 <!-- Example: Currently working on: user authentication flow. -->

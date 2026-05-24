@@ -9,12 +9,14 @@ Code should read this alongside CLAUDE.md at the start of every session.
 ## Overview
 
 <!-- Two to four sentences. What does this application do at a technical level,
-what is the architectural pattern (monolith, API + SPA, SSR, etc.), and what are
-the hard constraints it operates under (latency, scale, consistency, etc.). -->
+what is the architectural pattern (monolith, API + SPA, SSR, Inertia, etc.),
+what stack is in use, and what are the hard constraints it operates under. -->
 
 ---
 
 ## Application Lifecycle
+
+### Go / Python
 
 ```
 Start
@@ -23,317 +25,369 @@ Start
 [Entry Point]
  |
  v
-[Config / Env Validation]    <-- fail fast if required env vars are missing
+[Config / Env Validation]      <-- fail fast if required env vars are missing
  |
  v
-[Database Connection Pool]   <-- establish and verify DB connectivity
+[Database Connection Pool]     <-- establish and verify DB connectivity
  |
  v
-[Run Migrations]             <-- optional at startup; see ops conventions below
+[Middleware Stack Init]        <-- logging, auth, CORS, rate limiting, etc.
  |
  v
-[Middleware Stack Init]      <-- logging, auth, CORS, rate limiting, etc.
+[Route Registration]           <-- all routes registered before accepting traffic
  |
  v
-[Route Registration]         <-- all routes registered before accepting traffic
+[Start HTTP Listener]
  |
  v
-[Start HTTP Listener]        <-- begin serving requests
+[Block on Signal]              <-- SIGTERM / SIGINT triggers shutdown
  |
  v
-[Block on Signal]            <-- SIGTERM / SIGINT triggers shutdown
- |
- v
-[Graceful Shutdown]          <-- drain in-flight requests, close DB pool, exit
+[Graceful Shutdown]            <-- drain in-flight requests, close pool, exit
  |
  v
 exit(0)
 ```
 
-### Signal Handling
+### Laravel
+
+```
+Public request hits public/index.php
+ |
+ v
+[Bootstrap / Service Container]  <-- service providers registered and booted
+ |
+ v
+[HTTP Kernel]                    <-- global middleware applied
+ |
+ v
+[Router]                         <-- route matched; route middleware applied
+ |
+ v
+[Form Request Validation]        <-- input validated before controller is called
+ |
+ v
+[Controller]                     <-- thin; delegates to Service immediately
+ |
+ v
+[Service Layer]                  <-- all business logic lives here
+ |
+ v
+[Repository Layer]               <-- all Eloquent / database access lives here
+ |
+ v
+[API Resource / Blade View]      <-- response shaped and returned
+ |
+ v
+HTTP Response
+```
+
+### Signal Handling (Go / Python)
 
 | Signal  | Behavior                                                      |
 |---------|---------------------------------------------------------------|
 | SIGTERM | Graceful shutdown - drain in-flight requests, then exit       |
 | SIGINT  | Graceful shutdown - same as SIGTERM                           |
 
-Graceful shutdown drains in-flight requests within <!-- N --> seconds before the
-process exits. The load balancer or reverse proxy should be configured to stop
-sending new requests before SIGTERM is sent.
+Graceful shutdown drains in-flight requests within <!-- N --> seconds.
 
 ---
 
 ## Component Breakdown
 
-### Entry Point (`cmd/app_name` or `app_name/main.py`)
+### Go / Python
 
-Reads environment variables, validates required config, initializes subsystems in
-dependency order, registers routes, and starts the listener. Contains no business
-logic - it is the composition root.
+#### Entry Point
+Reads environment, validates config, initializes subsystems, registers routes, starts
+the listener. No business logic - composition root only.
 
-### Configuration (`internal/config` or `src/config.py`)
+#### Configuration
+Reads all config from environment variables. Validates required values at startup,
+fails fast on missing or invalid config. No other package reads `os.Environ` directly.
 
-Reads all configuration from environment variables. Validates required values at
-startup and fails fast with a clear error message if any are missing or invalid.
-Exposes a single typed config struct/object - never reads `os.Environ` outside
-this package.
+#### Middleware Stack
+Ordered chain applied to all or selected routes:
 
-### Middleware Stack (`internal/middleware` or `src/middleware/`)
+| Middleware     | Purpose                                                   |
+|----------------|-----------------------------------------------------------|
+| Request ID     | Attaches a unique ID to every request for log correlation |
+| Logger         | Logs method, path, status, latency, request ID            |
+| Recovery       | Catches panics / unhandled exceptions, returns 500        |
+| CORS           | Cross-origin resource sharing headers                     |
+| Auth           | Validates session / JWT; populates request context        |
+| Rate Limiter   | Per-IP or per-user request rate limiting                  |
+| <!-- other --> | <!-- purpose -->                                          |
 
-Ordered chain of middleware applied to all or selected routes:
+#### Handler Layer
+Routes requests to handlers. Handlers parse and validate input, call the service
+layer, and serialize the response. No business logic in handlers.
 
-| Middleware        | Purpose                                              |
-|-------------------|------------------------------------------------------|
-| Request ID        | Attaches a unique ID to every request for log correlation |
-| Logger            | Logs method, path, status, latency, request ID       |
-| Recovery          | Catches panics / unhandled exceptions, returns 500   |
-| CORS              | Cross-origin resource sharing headers                |
-| Auth              | Validates session / JWT; populates request context   |
-| Rate Limiter      | Per-IP or per-user request rate limiting             |
-| <!-- other -->    | <!-- purpose -->                                     |
+#### Service Layer
+All business logic. Called by handlers; calls repositories for data. Independent of
+HTTP - testable without a server.
 
-### Router and Handlers (`internal/handler` or `src/routers/`)
+#### Repository Layer
+All database access behind an interface. Each repository owns one domain entity.
+No raw SQL outside repositories. Enables mocking in unit tests.
 
-Routes incoming HTTP requests to the correct handler. Handlers are thin: they
-parse and validate the request, call into the service layer, and serialize the
-response. They contain no business logic.
+---
 
-### Service Layer (`internal/service` or `src/services/`)
+### Laravel
 
-Contains all business logic. Services are called by handlers and call into the
-repository layer for persistence. Services are independent of HTTP - they can be
-called from handlers, background workers, or tests without an HTTP context.
+#### Service Container and Providers
+Laravel's IoC container wires dependencies automatically. Service providers in
+`app/Providers/` register bindings, event listeners, and boot services. Do not
+put business logic in providers.
 
-### Repository / Data Access Layer (`internal/repository` or `src/repositories/`)
+#### HTTP Kernel and Middleware (`app/Http/Middleware/`)
+Global and route-level middleware. Responsible for: authentication, CORS, rate
+limiting, request logging, and session handling. Add new cross-cutting concerns
+here, not in controllers.
 
-Abstracts all database access behind an interface. Each repository owns one
-domain entity. Business logic never constructs raw SQL - all queries go through
-a repository. Enables test doubles (mocks) for unit testing the service layer.
+#### Form Requests (`app/Http/Requests/`)
+All input validation lives here - never validate in controllers. Form Requests also
+handle authorization checks (`authorize()` method). A controller method that accepts
+a Form Request can assume the input is valid and the user is authorized.
 
-### Database (`internal/db` or `src/db/`)
+#### Controllers (`app/Http/Controllers/`)
+Thin. Receive a validated request, call one Service method, return a response via an
+API Resource or Blade view. A controller method should rarely exceed ten lines.
+No Eloquent queries, no business logic, no conditional branching on domain rules.
 
-Manages the connection pool and migration state. Exposes a connection/pool
-object to the repository layer. Does not expose raw connections outside this
-package.
+#### Service Layer (`app/Services/`)
+All business logic. Not a Laravel default directory - always create it. Services are
+plain PHP classes injected via the container. They call Repositories for data access
+and may dispatch Jobs, send Notifications, or fire Events. Services must not import
+`Illuminate\Http` classes - they are HTTP-agnostic.
 
-### Frontend (`web/`)
+#### Repository Layer (`app/Repositories/`)
+All Eloquent queries. Not a Laravel default directory - always create it. Repositories
+accept and return domain data; they do not know about HTTP requests or responses.
+Controllers and Services never call Eloquent or `DB::` facades directly.
 
-<!-- Describe the frontend architecture. Examples below - keep what applies. -->
+#### Models (`app/Models/`)
+Eloquent models define relationships, casts, fillable/guarded lists, and scopes.
+They do not contain business logic. Fat models are an antipattern here - logic belongs
+in Services.
 
-- <!-- SPA (React/Vue): built separately, served as static files from web/dist/ -->
-- <!-- SSR: templates in templates/, rendered server-side per request -->
-- <!-- HTMX: HTML fragments returned from dedicated endpoints -->
-- <!-- MPA: full page HTML responses, minimal JS -->
+#### API Resources (`app/Http/Resources/`)
+Shape every API response. Never return a Model or Collection directly from a controller
+- always wrap in a Resource. Resources control what fields are exposed and how they
+are formatted.
 
-### Background Workers (`internal/worker` or `src/workers/`)
+#### Jobs and Queues (`app/Jobs/`)
+Deferred and background work dispatched from Services. Queue connection configured
+via `QUEUE_CONNECTION` env var. A queue worker must be running for jobs to process:
+`php artisan queue:work`.
 
-<!-- Does this application have background jobs? Describe them here, or remove
-this section if not applicable. -->
+#### Events and Listeners (`app/Events/`, `app/Listeners/`)
+Used for decoupled side effects (send email after registration, log an audit event,
+etc.). Prefer over calling secondary Services directly when the caller should not
+depend on the side effect completing synchronously.
 
-- <!-- Example: email sender worker - processes send_email jobs from a queue -->
-- <!-- Example: no background workers - all work is synchronous and request-scoped -->
+#### Console Commands (`app/Console/`)
+Artisan commands for maintenance tasks, data imports, and scheduled operations.
+Scheduled commands registered in `app/Console/Kernel.php` (Laravel 10) or
+`routes/console.php` (Laravel 11+).
 
 ---
 
 ## Request Lifecycle
 
+### Go / Python
+
 ```
-Client Request
- |
- v
-[Reverse Proxy / Load Balancer]   <-- TLS termination, static file serving
- |
- v
-[HTTP Listener]
- |
- v
-[Middleware Chain]                <-- request ID, logging, recovery, auth
- |
- v
-[Router]                          <-- matches path and method to handler
- |
- v
-[Handler]                         <-- parse request, validate input
- |
- v
-[Service Layer]                   <-- business logic
- |
- v
-[Repository Layer]                <-- database read/write
- |
- v
-[Database]
- |
- (result flows back up the chain)
- |
- v
-[Handler]                         <-- serialize response
- |
- v
-HTTP Response to Client
+Client -> Reverse Proxy (TLS termination) -> HTTP Listener
+       -> Middleware Chain -> Router -> Handler
+       -> Service Layer -> Repository -> Database
+       -> (response flows back) -> HTTP Response
+```
+
+### Laravel
+
+```
+Client -> Web Server (nginx/Apache/Caddy, TLS termination)
+       -> public/index.php -> Bootstrap -> HTTP Kernel
+       -> Global Middleware -> Router -> Route Middleware
+       -> Form Request (validate + authorize)
+       -> Controller (delegate immediately)
+       -> Service (business logic)
+       -> Repository (Eloquent queries)
+       -> Database
+       -> (response flows back)
+       -> API Resource or Blade View -> HTTP Response
 ```
 
 ---
 
 ## Authentication and Authorization
 
-<!-- Describe the auth model. -->
+<!-- Describe the auth model in use. -->
 
-- Mechanism: <!-- JWT / session cookie / API key / OAuth2 -->
-- Token storage: <!-- HttpOnly cookie / Authorization header / localStorage -->
-- Session store: <!-- in-memory / database / Redis -->
-- Auth check performed in: <!-- middleware (all routes) / per-handler -->
-- Authorization model: <!-- RBAC / ABAC / simple owner check / none -->
+### Options by Stack
 
-### Auth Flow
+| Stack          | Mechanism                        | Notes                                   |
+|----------------|----------------------------------|-----------------------------------------|
+| Go / Python    | JWT / session cookie             | Validated in auth middleware            |
+| Laravel API    | Laravel Sanctum (token)          | Tokens stored in `personal_access_tokens` table |
+| Laravel API    | Laravel Passport (OAuth2)        | For third-party OAuth flows             |
+| Laravel SPA    | Laravel Sanctum (cookie)         | SPA auth via HttpOnly session cookie    |
+| Laravel Blade  | Laravel session auth             | Standard session + remember-me cookie   |
+| Inertia.js     | Laravel Sanctum (cookie)         | Same as Laravel SPA                     |
 
-```
-<!-- Describe the login / token issuance flow -->
-<!-- Example (JWT): -->
-<!-- POST /api/v1/auth/login -->
-<!--   -> validate credentials against database -->
-<!--   -> issue signed JWT with claims { user_id, roles, exp } -->
-<!--   -> return token in response body -->
-<!--   -> subsequent requests: Authorization: Bearer <token> -->
-<!--   -> auth middleware validates signature and expiry on every request -->
-```
+### Authorization
 
----
-
-## Data Flow
-
-```
-Inbound:
-- HTTP requests from browser / API clients
-- <!-- webhook callbacks (if applicable) -->
-
-Processing:
-- Request -> middleware -> handler -> service -> repository -> database
-
-Outbound:
-- HTTP responses (JSON / HTML)
-- <!-- emails, push notifications (if applicable) -->
-- <!-- events published to queue (if applicable) -->
-- Logs: stderr (development) / structured JSON (production)
-```
+- Laravel: use Policies (`app/Policies/`) and Gates for authorization checks
+- Authorization checked in Form Request `authorize()` or Policy before entering Service
+- Never check authorization inside a Service or Repository
 
 ---
 
 ## Database
 
-- Engine: <!-- PostgreSQL / SQLite / MySQL -->
-- Connection: `DATABASE_URL` environment variable
-- Connection pool: <!-- min N, max N connections -->
-- Migrations: sequential numbered SQL files in `migrations/`
-- Query approach: <!-- raw SQL via sqlc / GORM / SQLAlchemy / psycopg2 -->
+- Engine: <!-- PostgreSQL / MySQL / SQLite -->
+- Migrations: sequential SQL files (Go/Python) or Laravel migration classes
+- Query approach: <!-- sqlc / GORM / SQLAlchemy (Go/Python) or Eloquent via Repositories (Laravel) -->
 
 ### Schema Conventions
 
-- Table names: plural snake_case (`users`, `session_tokens`)
-- Primary keys: `id` (UUID or serial integer - pick one and be consistent)
-- Timestamps: `created_at`, `updated_at` on every table (set by database)
-- Soft deletes: <!-- `deleted_at` nullable timestamp / hard deletes only -->
+- Table names: plural snake_case (`users`, `session_tokens`, `password_reset_tokens`)
+- Primary keys: `id` - UUID or auto-increment integer (pick one and be consistent)
+- Timestamps: `created_at`, `updated_at` on every table
 - Foreign keys: explicitly declared with appropriate ON DELETE behavior
+- Soft deletes: `deleted_at` nullable timestamp where needed (Laravel: use `SoftDeletes` trait)
 
-### Migration Conventions
+### Laravel Migration Conventions
 
-- Files: `migrations/NNN_description.sql` (e.g. `001_create_users.sql`)
-- Every migration has an up and a down section
-- Never edit a migration that has been applied to any environment
-- Schema changes that require data migration are split into separate files
+- One migration per logical change - do not bundle unrelated schema changes
+- Never edit a migration that has been committed - create a new one
+- Data migrations that accompany schema changes go in a separate migration file
+- Use `php artisan make:migration` to generate migration stubs with correct naming
 
 ---
 
 ## Frontend Architecture
 
-<!-- Expand on the frontend approach chosen for this project. -->
+### Rendering Strategies
 
-### Rendering Strategy
+#### API Backend + Separate SPA (Go / Python / Laravel API)
+- Backend is a pure JSON API
+- Frontend is a separate build (React, Vue, etc.) communicating over HTTP
+- Auth via Bearer token (Sanctum token or JWT)
+- CORS must be explicitly configured
 
-<!-- Choose one and expand: -->
-<!-- SPA: all rendering client-side; backend is pure API -->
-<!-- SSR: pages rendered server-side; JS hydrates on the client -->
-<!-- MPA: server renders full pages; minimal or no client-side JS -->
-<!-- HTMX: server renders HTML fragments; HTMX swaps them in -->
+#### Laravel Full-Stack with Blade
+- Server renders complete HTML pages via Blade templates in `resources/views/`
+- Vite compiles `resources/css/` and `resources/js/`; output served from `public/build/`
+- Session-based auth; CSRF token included in every state-changing form
+- Livewire optional for reactive components without writing an SPA
 
-### State Management
-
-<!-- How is application state managed on the frontend? -->
-<!-- Example: React Context for auth state; local component state for everything else -->
-<!-- Example: no client-side state - server is the source of truth -->
-
-### API Communication
-
-- All API calls centralized in `web/src/api/`
-- One module per backend resource (e.g. `api/users.js`, `api/posts.js`)
-- Never fetch directly from components or pages
-- Auth token attached automatically by the API client module
+#### Laravel + Inertia.js
+- Routes and auth remain server-side (Laravel); rendering is client-side (Vue / React)
+- Controllers return `Inertia::render('PageName', $props)` instead of JSON or Blade
+- Frontend page components in `resources/js/Pages/`
+- Shared global data (auth user, flash messages) passed via `HandleInertiaRequests`
+- Vite compiles the frontend; no separate frontend dev server needed for routing
 
 ### Asset Pipeline
 
-- Source: `web/src/`
-- Build output: `web/dist/` (gitignored)
-- Build tool: <!-- Vite / esbuild / none -->
-- Backend serves `web/dist/` as static files in production
-- In development: frontend dev server proxies API calls to backend
+- Go / Python: source in `web/src/`; output to `web/dist/` (gitignored); served as
+  static files by backend or reverse proxy
+- Laravel: source in `resources/js/` and `resources/css/`; Vite outputs to
+  `public/build/` (gitignored); referenced in Blade via `@vite()` directive
 
 ---
 
 ## Configuration and Secrets
 
-- All configuration via environment variables - no config files
-- `.env` for local development (never committed)
+- All configuration via environment variables - no config files committed with secrets
+- `.env` for local development (never committed; always in `.gitignore`)
 - `.env.example` committed with all keys and safe placeholder values
-- Secrets (DATABASE_URL, SECRET_KEY, etc.) never hardcoded or logged
-- Production secrets managed by <!-- deployment platform / Vault / secrets manager -->
+- Laravel: config files in `config/` read from `.env` via `env()` - never call
+  `env()` outside `config/` files; use `config('key')` everywhere else
+- Production config cached via `php artisan config:cache` - `env()` returns null
+  after caching unless called in a config file
+
+---
+
+## Laravel Production Optimization
+
+The following Artisan commands must be run as part of every production deployment:
+
+```bash
+composer install --no-dev --optimize-autoloader
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache    # Laravel 11+
+npm run build              # if using Vite
+php artisan migrate --force
+php artisan storage:link   # if using local file storage
+```
+
+To clear all caches (e.g. after a bad deploy or config change):
+
+```bash
+php artisan optimize:clear
+```
 
 ---
 
 ## Logging
 
-- All log output to stderr
-- Development: `text` format (human-readable)
-- Production: `json` format (structured, for log aggregators)
-- Every log line within a request includes the `request_id`
-- Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
-- Never log: passwords, tokens, full request bodies containing sensitive fields, PII
+- Go / Python: stderr; `text` in development, `json` in production
+- Laravel: configured in `config/logging.php`; default channel is `stack`
+  - Development: `single` or `daily` file driver
+  - Production: `stderr` (for container/systemd capture) or a log aggregator channel
+- Every log line within a request includes the request/correlation ID
+- Never log: passwords, tokens, full request bodies with sensitive fields, PII
 
 ---
 
-## Error Handling Strategy
+## Error Handling
 
-- Handler-level errors return structured JSON with `error`, `code`, and `request_id`
-- 4xx errors: client errors (bad input, unauthorized, not found) - logged at INFO
-- 5xx errors: server errors - logged at ERROR with full context
-- Unhandled panics (Go) / exceptions (Python) caught by recovery middleware,
-  logged at CRITICAL, return 500 to client
-- Database errors are never exposed directly to the client
+### Go / Python
+- Unhandled errors caught by recovery middleware; logged at CRITICAL; return 500
+- 4xx logged at INFO; 5xx logged at ERROR with full context
+- Raw database errors never exposed to client
+
+### Laravel
+- Exception handling in `app/Exceptions/Handler.php`
+- `ValidationException` automatically returns 422 with field errors
+- `AuthenticationException` returns 401 (API) or redirects to login (web)
+- `AuthorizationException` returns 403
+- Custom exceptions should extend `HttpException` or be registered in `Handler.php`
+- `APP_DEBUG=false` in production - never expose stack traces to clients
 
 ### HTTP Status Code Conventions
 
-| Situation                          | Status Code |
-|------------------------------------|-------------|
-| Success (with body)                | 200         |
-| Created                            | 201         |
-| Success (no body)                  | 204         |
-| Validation error                   | 400         |
-| Unauthenticated                    | 401         |
-| Unauthorized (authenticated but no permission) | 403 |
-| Not found                          | 404         |
-| Conflict (duplicate, constraint)   | 409         |
-| Internal server error              | 500         |
+| Situation                               | Status Code |
+|-----------------------------------------|-------------|
+| Success (with body)                     | 200         |
+| Created                                 | 201         |
+| Success (no body)                       | 204         |
+| Validation error                        | 400 / 422   |
+| Unauthenticated                         | 401         |
+| Unauthorized (no permission)            | 403         |
+| Not found                               | 404         |
+| Conflict (duplicate, constraint)        | 409         |
+| Internal server error                   | 500         |
 
 ---
 
 ## Security Considerations
 
-- All user input validated and sanitized before use
-- All database queries use parameterized statements - no string interpolation
-- CSRF protection: <!-- SameSite cookie / CSRF token / stateless JWT (no CSRF needed) -->
-- CORS: restricted to known origins via `ALLOWED_HOSTS`
-- Security headers set on all responses: <!-- list headers or reference middleware -->
-- Sensitive routes rate-limited (auth endpoints especially)
-- Dependency versions pinned and audited regularly
+- All user input validated before use (Form Requests in Laravel; validation layer in Go/Python)
+- All queries use parameterized statements / Eloquent bindings - no string interpolation
+- CSRF: Laravel includes CSRF protection by default for web routes; verify it is not
+  disabled; API routes using Sanctum SPA auth use cookie-based CSRF
+- CORS: restricted to known origins; never use wildcard `*` in production
+- Security headers applied via middleware for all responses
+- Auth endpoints rate-limited
+- `APP_DEBUG=false` and `APP_ENV=production` verified in production
+- File uploads validated for type, size, and stored outside the web root or in
+  cloud storage - never in `public/`
+- Mass assignment protected via `$fillable` or `$guarded` on every Eloquent model
 
 ---
 
@@ -341,12 +395,13 @@ Outbound:
 
 <!-- Describe how this application is deployed. -->
 
-- Packaging: <!-- Docker container / binary / Python package -->
-- Reverse proxy: <!-- nginx / caddy / cloud load balancer -->
-- TLS termination: <!-- at reverse proxy / at load balancer -->
-- Static files: <!-- served by reverse proxy / CDN / backend -->
+- Packaging: <!-- Docker container / binary / PHP on shared host / PHP-FPM + nginx -->
+- Web server: <!-- nginx / Apache / Caddy / Laravel Octane (Swoole / RoadRunner) -->
+- TLS: <!-- at reverse proxy / at load balancer -->
+- Static files: <!-- reverse proxy / CDN / public/ directory -->
 - Database: <!-- managed service / self-hosted -->
-- Migrations: <!-- run manually before deploy / run automatically at startup -->
+- Queue worker: <!-- Supervisor / systemd / cloud worker -->
+- Scheduler: <!-- cron calling `php artisan schedule:run` / Laravel Scheduler in Octane -->
 
 See README.md for deployment instructions.
 
@@ -355,23 +410,28 @@ See README.md for deployment instructions.
 ## Testing Strategy
 
 ### Unit Tests
+- Go / Python: service layer with mocked repositories; no real DB or network
+- Laravel: `tests/Unit/` - plain PHPUnit tests for Services and helpers; mock
+  Repositories with Mockery or PHPUnit mocks; no database, no HTTP
 
-- Service layer tested in isolation with mocked repositories
-- Repository layer tested against a real test database (separate from dev DB)
-- Handlers tested with an HTTP test client - no real network calls
-
-### Integration Tests
-
-- Start a real instance against a test database
-- Exercise full request -> handler -> service -> database path
-- Require: running database (and any other external dependencies)
+### Feature / Integration Tests
+- Go / Python: full request path against a real test database
+- Laravel: `tests/Feature/` - drive requests through the full Laravel stack
+  (HTTP Kernel, middleware, controller, service, repository) against a test
+  database using `RefreshDatabase` or `DatabaseTransactions` trait
+- Laravel test database: SQLite in-memory for speed, or a dedicated PostgreSQL/MySQL
+  test database matching production engine
 
 ### End-to-End Tests
-
 - Drive a real browser against the full running stack
-- Tool: <!-- Playwright / Cypress -->
+- Tool: <!-- Playwright / Cypress / Laravel Dusk -->
 - Cover critical user flows only - not exhaustive UI coverage
-- Run in CI against a staging-like environment
+
+### Laravel Testing Conventions
+- Use model factories (`database/factories/`) for all test data - never hardcode records
+- Use `RefreshDatabase` for tests that write data; `DatabaseTransactions` where faster
+- Never make real HTTP calls to external services in tests - use Laravel's `Http::fake()`
+- Never send real emails in tests - use `Mail::fake()` and `Notification::fake()`
 
 ---
 
@@ -380,15 +440,15 @@ See README.md for deployment instructions.
 <!-- Honest trade-offs and known weak spots. -->
 
 - <!-- Example: no caching layer - all reads hit the database -->
-- <!-- Example: session store is in-memory - sessions lost on restart -->
-- <!-- Example: migrations run at startup - requires careful deploy ordering -->
+- <!-- Example: queue worker is a single process - not horizontally scaled yet -->
+- <!-- Example: file uploads stored locally - not suitable for multi-server deployment -->
 
 ---
 
 ## Future Architectural Considerations
 
-<!-- Anticipated but not yet implemented changes. -->
+<!-- Anticipated but not yet implemented. -->
 
-- <!-- Example: Redis cache layer for high-read endpoints planned for v0.4.0 -->
-- <!-- Example: background job queue (pgqueue / Redis) needed before email feature -->
+- <!-- Example: Redis cache layer for high-read endpoints -->
 - <!-- Example: CDN for static assets before public launch -->
+- <!-- Example: Laravel Octane for improved throughput if needed -->
