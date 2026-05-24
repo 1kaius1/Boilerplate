@@ -1,4 +1,4 @@
-# project-boilerplate
+# Boilerplate
 
 Opinionated project boilerplate for CLI tools, GUI applications, web applications,
 and services. Built for projects written in Go, Python, and BASH, targeting Linux,
