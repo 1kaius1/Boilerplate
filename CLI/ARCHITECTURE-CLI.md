@@ -199,6 +199,49 @@ over alternatives. This section should make it easy to audit the dependency surf
 
 ---
 
+## File-Based Data Formats
+
+<!-- Does this tool read or write any file formats beyond its config file?
+Document them here - schema, version field, example, and any migration
+strategy for format changes. Remove this section if not applicable. -->
+
+<!-- Example: -->
+<!-- ### Input Format -->
+<!-- Files passed via argument or stdin must conform to: -->
+<!-- ```json -->
+<!-- { -->
+<!--   "version": 1, -->
+<!--   "field": "value" -->
+<!-- } -->
+<!-- ``` -->
+<!-- - `version` is required and must be `1` - used to detect incompatible future formats -->
+<!-- - Unrecognized fields are ignored, not rejected -->
+
+<!-- ### Output Format -->
+<!-- With --output json, the tool writes: -->
+<!-- ```json -->
+<!-- { -->
+<!--   "version": 1, -->
+<!--   "results": [] -->
+<!-- } -->
+<!-- ``` -->
+
+---
+
+## Extension and Integration Points
+
+<!-- What does this tool expose to external callers or other tools?
+Document stdin/stdout contracts, exit codes used by calling scripts,
+any environment variables it sets or reads from callers, and any
+plugin or hook mechanisms. Remove this section if not applicable. -->
+
+- Stdout contract: <!-- describe the machine-readable output format callers depend on -->
+- Exit codes: <!-- list codes that callers are expected to branch on -->
+- Environment variables read from caller: <!-- or "none" -->
+- Plugin / hook mechanism: <!-- or "none - not extensible by design" -->
+
+---
+
 ## Known Limitations
 
 <!-- What does this architecture not handle well? What are the known trade-offs?

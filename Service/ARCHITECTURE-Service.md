@@ -318,6 +318,37 @@ separate API doc or OpenAPI spec if one exists. -->
 
 ---
 
+## File-Based Data Formats
+
+<!-- Does this service read or write any file-based data formats beyond its
+config file (e.g. import files, export files, spool files, data snapshots)?
+Document them here. Remove if not applicable. -->
+
+<!-- Example: -->
+<!-- ### Import Format -->
+<!-- Files dropped into the watched directory must be newline-delimited JSON: -->
+<!-- ```json -->
+<!-- {"version": 1, "type": "event", "payload": {}} -->
+<!-- ``` -->
+<!-- - `version` is required; unrecognized versions are rejected and moved to errors/ -->
+<!-- - Processed files are moved to processed/; failed files to errors/ -->
+
+---
+
+## Extension and Integration Points
+
+<!-- What does this service expose to external callers beyond its primary API?
+Document webhook outputs, plugin hooks, event streams, metrics endpoints,
+health check endpoints, and any embedding or library interface. -->
+
+- Health check: <!-- e.g. GET /healthz returns 200 OK when service is ready, or "not yet implemented" -->
+- Metrics: <!-- e.g. GET /metrics exposes Prometheus-format metrics, or "not yet implemented" -->
+- Webhook output: <!-- e.g. POSTs event payloads to configured URLs on state changes, or "none" -->
+- Event stream: <!-- e.g. SSE or WebSocket stream at /events, or "none" -->
+- Plugin / extension mechanism: <!-- or "none - not extensible by design" -->
+
+---
+
 ## Known Limitations
 
 <!-- What does this architecture not handle well? What are the known trade-offs? -->

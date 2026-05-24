@@ -262,6 +262,41 @@ assets/
 
 ---
 
+## File-Based Data Formats
+
+<!-- Does this application read or write any file formats (project files, export
+formats, import formats)? Document them here - schema, version field, example,
+and migration strategy for format changes. Remove if not applicable. -->
+
+<!-- Example: -->
+<!-- ### Project File (.appname) -->
+<!-- The application's native save format: -->
+<!-- ```json -->
+<!-- { -->
+<!--   "version": 1, -->
+<!--   "created_at": "ISO8601", -->
+<!--   "data": {} -->
+<!-- } -->
+<!-- ``` -->
+<!-- - `version` is required - bump on breaking schema changes -->
+<!-- - Older versions are migrated forward at open time; the original file is not overwritten -->
+<!-- - Export formats (PDF, CSV, etc.) are write-only and have no version field -->
+
+---
+
+## Extension and Integration Points
+
+<!-- What does this application expose to external tools or scripts?
+Document any CLI flags for automation, IPC mechanisms, file watching,
+DBus/COM interfaces, or plugin APIs. Remove if not applicable. -->
+
+- Automation / scripting: <!-- e.g. --headless flag for batch processing, or "none" -->
+- IPC / inter-process: <!-- e.g. DBus interface, named pipe, or "none" -->
+- Plugin mechanism: <!-- e.g. ~/.app_name/plugins/ directory, or "none - not extensible by design" -->
+- Export formats: <!-- list supported export formats and their owners -->
+
+---
+
 ## Known Limitations
 
 <!-- What does this architecture not handle well? What are the known trade-offs? -->

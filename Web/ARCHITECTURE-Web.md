@@ -435,6 +435,93 @@ See README.md for deployment instructions.
 
 ---
 
+## Audit Log
+
+<!-- Does this application maintain an audit or event log? If so, document
+what triggers it, what is recorded, what is explicitly not recorded, how
+long records are retained, and whether it is append-only. -->
+
+<!-- Example: -->
+<!-- Every state-changing action on a domain object appends a record to the -->
+<!-- audit_log table. Records are immutable - never updated or deleted. -->
+<!-- -->
+<!-- Each record stores: -->
+<!-- - actor_id: the user or service account that performed the action -->
+<!-- - action: a past-tense verb (e.g. "created", "updated", "deleted") -->
+<!-- - object_type and object_id: what was affected -->
+<!-- - diff: a JSON patch of changed fields (new value only; old value not stored) -->
+<!-- - created_at: server timestamp -->
+<!-- -->
+<!-- Not recorded: read operations, failed auth attempts (logged but not audited), -->
+<!-- internal system jobs. -->
+<!-- -->
+<!-- Retention: indefinite (no purge policy defined yet - see PLANNING.md). -->
+
+---
+
+## Deployment Topology
+
+<!-- Describe the intended deployment model. Is this single-tenant (one instance
+per customer) or multi-tenant (many customers sharing one instance)?
+What isolation exists between tenants or users? -->
+
+### Tenancy Model
+
+<!-- Choose one and expand: -->
+<!-- Single-tenant: one instance per customer; data isolation is total (separate DB) -->
+<!-- Multi-tenant (shared DB): all tenants share one database; rows scoped by tenant_id -->
+<!-- Multi-tenant (schema-per-tenant): one schema per tenant in a shared Postgres instance -->
+<!-- Hybrid: self-hosted instances are single-tenant; hosted platform is multi-tenant -->
+
+- Model: <!-- single-tenant / multi-tenant shared DB / multi-tenant schema-per-tenant / hybrid -->
+- Tenant identifier: <!-- tenant_id column on every table / separate schema / separate database -->
+- Data isolation mechanism: <!-- Row Level Security / application-layer scoping / separate DB -->
+- Cross-tenant data access: <!-- never permitted / explicitly permitted for these admin roles -->
+
+### Scaling Model
+
+- Horizontal scaling: <!-- supported / not supported - single instance only -->
+- Session affinity required: <!-- yes (sticky sessions) / no (stateless) -->
+- Shared state between instances: <!-- Redis / database / none -->
+- Static assets: <!-- served by reverse proxy / CDN -->
+
+---
+
+## Extension and Integration Points
+
+<!-- What does this application expose beyond its primary user-facing API?
+Document webhook outputs, plugin systems, public API contracts, event
+streams, and any embedding interface. -->
+
+- Inbound webhooks: <!-- e.g. accepts POST /webhooks/stripe for payment events, or "none" -->
+- Outbound webhooks: <!-- e.g. POSTs event payloads to user-configured URLs, or "none" -->
+- Public API: <!-- e.g. versioned REST API at /api/v1 documented in docs/api.md, or "internal only" -->
+- Event stream: <!-- e.g. SSE at /api/v1/events, or "none" -->
+- Plugin / extension mechanism: <!-- e.g. separate extension services communicate via API, or "none" -->
+- API spec license: <!-- e.g. API specification published under MIT to allow third-party integrations -->
+
+---
+
+## File-Based Data Formats
+
+<!-- Does this application import or export any file-based data formats
+(CSV, JSON export, import files, attachments)? Document them here.
+Remove if not applicable. -->
+
+<!-- Example: -->
+<!-- ### Data Export (.json) -->
+<!-- Users can export their data via GET /api/v1/export. The response is: -->
+<!-- ```json -->
+<!-- { "version": 1, "exported_at": "ISO8601", "data": {} } -->
+<!-- ``` -->
+<!-- - `version` is bumped on breaking schema changes -->
+<!-- - Exports are self-contained and can be used to seed a fresh instance -->
+<!-- -->
+<!-- ### Import -->
+<!-- Imports accept the same format. Processed asynchronously via background job. -->
+
+---
+
 ## Known Limitations
 
 <!-- Honest trade-offs and known weak spots. -->

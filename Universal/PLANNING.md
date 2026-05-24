@@ -4,6 +4,13 @@ This document tracks project goals, milestones, open questions, and design decis
 It is a living document - update it as the project evolves. Claude Code should read
 this file at the start of every session to understand current project state.
 
+Some projects benefit from companion documents alongside this one. Common examples:
+- DESIGN.md - detailed design specifications for a major subsystem or feature
+- SCHEMA.md - full database or data format schema reference
+- RULES.md - domain rules, game mechanics, or business logic reference
+- API.md - full API specification
+If created, link to them from the relevant section of this file and from ARCHITECTURE.md.
+
 ---
 
 ## Project Goal
@@ -79,9 +86,21 @@ this file at the start of every session to understand current project state.
 
 ## Decisions Log
 
-<!-- Record significant decisions here so future sessions have the context. -->
-<!-- Include what was decided, why, and what alternatives were considered. -->
-<!-- Do not delete old entries - this is a permanent record. -->
+<!-- This is the most valuable section in this file over the long term.
+     Every significant decision - architecture, library choice, data model,
+     API design, licensing, deployment strategy - belongs here with its full
+     rationale and a record of what alternatives were considered and rejected.
+
+     The goal is that anyone (including a future AI session) can read this log
+     and understand WHY the project is the way it is, not just what it does.
+     A decision with no recorded rationale will be relitigated endlessly.
+
+     What counts as significant: anything where a reasonable person could
+     disagree, anything that took more than a few minutes to decide, anything
+     that closes off a future option. When in doubt, log it.
+
+     Never delete old entries. Superseded decisions stay in the log with a
+     note pointing to the newer decision that replaced them. -->
 
 | Date | Decision | Rationale | Alternatives Considered |
 |------|----------|-----------|-------------------------|
