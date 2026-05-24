@@ -1,4 +1,4 @@
-# Boilerplate
+# project-boilerplate
 
 Opinionated project boilerplate for CLI tools, GUI applications, web applications,
 and services. Built for projects written in Go, Python, and BASH, targeting Linux,
@@ -50,7 +50,7 @@ Each type directory contains four files tailored to that project type.
 |-----------|-----|
 | `CLI/` | Command-line tools and utilities |
 | `GUI/` | Desktop GUI applications |
-| `Web/` | Web applications (backend API + frontend) |
+| `Web/` | Web applications (backend API + frontend) — Go, Python, PHP / Laravel |
 | `Service/` | Long-running background services and daemons |
 
 The `Web/` directory also includes a `.clauderules-web-addendum` file that overrides
@@ -102,15 +102,15 @@ needing to track down contributors if the license terms ever change.
 
 ```bash
 # Clone this repository
-git clone https://github.com/1kaius1/Boilerplate.git
+git clone https://github.com/OWNER/project-boilerplate.git
 
 # Copy the relevant type directory into your new project
-cp -r Boilerplate/CLI/ ~/projects/my_tool/
+cp -r project-boilerplate/CLI/ ~/projects/my_tool/
 # or
-cp -r Boilerplate/Web/ ~/projects/my_app/
+cp -r project-boilerplate/Web/ ~/projects/my_app/
 
 # Copy the universal files
-cp Boilerplate/universal/* ~/projects/my_tool/
+cp project-boilerplate/Universal/* ~/projects/my_tool/
 
 # Remove the type suffixes from filenames
 cd ~/projects/my_tool
@@ -148,9 +148,10 @@ These templates assume projects written in one or more of:
 
 - **Go** - `go build`, `go test`, `go mod`, `gofmt`
 - **Python** - `pip`, `pytest`, `black`, `flake8` / `ruff`
+- **PHP** - `composer`, `php artisan`, `phpunit`, `pint` (web projects only)
 - **BASH** - `set -euo pipefail`, shellcheck
 
-Build and test commands in each template cover all three where applicable. Remove
+Build and test commands in each template cover all applicable languages. Remove
 the sections that do not apply to your project.
 
 ---
@@ -176,7 +177,7 @@ Improvements are welcome. If a convention is wrong, a section is missing, or a
 template does not reflect how a project type actually works, open an issue or a pull
 request.
 
-Follow the same workflow described in `universal/CONTRIBUTING.md`. The CLA applies.
+Follow the same workflow described in `Universal/CONTRIBUTING.md`. The CLA applies.
 
 ---
 
