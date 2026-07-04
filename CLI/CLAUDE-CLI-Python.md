@@ -1,4 +1,4 @@
-# CLAUDE.md - CLI Application
+# CLAUDE.md - CLI Application (Python)
 
 This file provides project context and conventions for AI-assisted development sessions.
 Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
@@ -18,8 +18,8 @@ behavioral rules that govern this session.
 
 | Component       | Choice             | Reason                                      |
 |-----------------|--------------------|---------------------------------------------|
-| Language        | <!-- Go/Python/BASH --> | <!-- Why this language -->             |
-| Arg parsing     | <!-- flag, cobra, argparse, etc. --> | <!-- Why -->            |
+| Language        | Python             | <!-- Why this language -->                  |
+| Arg parsing     | <!-- argparse, click, typer, etc. --> | <!-- Why -->              |
 | Config format   | <!-- YAML/JSON/TOML --> | <!-- Why -->                           |
 | Key dependency  | <!-- name -->      | <!-- What it provides -->                   |
 | Key dependency  | <!-- name -->      | <!-- What it provides -->                   |
@@ -30,10 +30,7 @@ behavioral rules that govern this session.
 
 ```
 project_name/
-- cmd/                  # Entry points (Go) or main script (Python/BASH)
-- internal/             # Private packages not exported (Go)
-- pkg/                  # Exported/reusable packages (Go)
-- src/                  # Source modules (Python)
+- src/                  # Source modules
 - scripts/              # Helper and maintenance scripts
 - tests/                # Test suite
 - docs/                 # Additional documentation
@@ -56,36 +53,21 @@ project_name/
 ### Prerequisites
 
 ```bash
-# List runtime and build dependencies
-# Example:
-# Go 1.22+
 # Python 3.11+
-# make
 ```
 
 ### Build
 
 ```bash
-# Go
-go build -o bin/app_name ./cmd/app_name
-
-# Python - no build step required, install dependencies:
+# No build step required, install dependencies:
 pip install -r requirements.txt
-
-# BASH - no build step required
 ```
 
 ### Install (local development)
 
 ```bash
-# Go - install to GOPATH/bin
-go install ./cmd/app_name
-
-# Python - install as editable package
+# Install as editable package
 pip install -e .
-
-# BASH - symlink to PATH
-ln -s "$(pwd)/app_name.sh" ~/.local/bin/app_name
 ```
 
 ---
@@ -123,24 +105,10 @@ app_name --config ~/.app_name/config.yaml do-something
 ## Running Tests
 
 ```bash
-# Go
-go test ./...
-
-# Go - with race detector
-go test -race ./...
-
-# Go - with coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-
-# Python
 pytest
 
-# Python - with coverage
+# With coverage
 pytest --cov=src tests/
-
-# BASH
-bash tests/run_tests.sh
 ```
 
 All tests must pass before committing or opening a pull request. Never suggest a PR
@@ -185,9 +153,7 @@ Behavioral rules are in `.clauderules`. Key reminders for this project:
 ```
 <!-- Add any project-specific style deviations or enforced patterns here -->
 <!-- Example: -->
-<!-- Go: all errors wrapped with fmt.Errorf("context: %w", err) -->
-<!-- Python: type hints required on all public functions -->
-<!-- BASH: set -euo pipefail at top of every script -->
+<!-- Type hints required on all public functions -->
 ```
 
 ---

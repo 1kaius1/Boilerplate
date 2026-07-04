@@ -1,4 +1,4 @@
-# CLAUDE.md - Service / Daemon
+# CLAUDE.md - Service / Daemon (Python)
 
 This file provides project context and conventions for AI-assisted development sessions.
 Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
@@ -18,8 +18,8 @@ behavioral rules that govern this session.
 ## Tech Stack
 
 | Component       | Choice                    | Reason                                  |
-|-----------------|---------------------------|-----------------------------------------|
-| Language        | <!-- Go/Python -->        | <!-- Why this language -->              |
+|-----------------|---------------------------|-------------------------------------------|
+| Language        | Python                    | <!-- Why this language -->              |
 | Config format   | <!-- YAML/JSON/TOML -->   | <!-- Why -->                            |
 | Transport       | <!-- HTTP, gRPC, Unix socket, etc. --> | <!-- Why -->             |
 | Key dependency  | <!-- name -->             | <!-- What it provides -->               |
@@ -31,10 +31,7 @@ behavioral rules that govern this session.
 
 ```
 project_name/
-- cmd/                  # Entry point (Go) or main script (Python)
-- internal/             # Private packages (Go)
-- pkg/                  # Exported packages (Go)
-- src/                  # Source modules (Python)
+- src/                  # Source modules
 - init/                 # Service manager files (systemd, launchd, Windows service)
 - scripts/              # Helper, packaging, and deployment scripts
 - tests/                # Test suite
@@ -58,37 +55,28 @@ project_name/
 ### Prerequisites
 
 ```bash
-# List runtime and build dependencies
-# Example:
-# Go 1.22+ or Python 3.11+
-# make
+# Python 3.11+
 ```
 
 ### Build
 
 ```bash
-# Go
-go build -o bin/app_name ./cmd/app_name
-
-# Python - no build step required, install dependencies:
+# No build step required, install dependencies:
 pip install -r requirements.txt
 ```
 
 ### Install (local development)
 
 ```bash
-# Go - install to GOPATH/bin
-go install ./cmd/app_name
-
-# Python - install as editable package
+# Install as editable package
 pip install -e .
 ```
 
 ### Install (system)
 
 ```bash
-# Copy binary
-sudo cp bin/app_name /usr/local/bin/app_name
+# Copy application (or install into a virtualenv at a system path)
+sudo cp -r . /opt/app_name
 
 # Install systemd unit (Linux)
 sudo cp init/app_name.service /etc/systemd/system/
@@ -99,7 +87,7 @@ cp init/com.example.app_name.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.example.app_name.plist
 
 # Install Windows service
-# sc create app_name binPath= "C:\path\to\app_name.exe"
+# sc create app_name binPath= "C:\path\to\python.exe C:\path\to\app_name\main.py"
 ```
 
 ---
@@ -151,20 +139,9 @@ Graceful shutdown must complete within <!-- N --> seconds before the process is 
 ## Running Tests
 
 ```bash
-# Go
-go test ./...
-
-# Go - with race detector (important for concurrent services)
-go test -race ./...
-
-# Go - with coverage
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-
-# Python
 pytest
 
-# Python - with coverage
+# With coverage
 pytest --cov=src tests/
 
 # Integration tests (requires running dependencies)
@@ -217,14 +194,14 @@ with failing tests. If tests cannot be run, say so explicitly.
 <!-- how the pieces fit together before touching any service code. Example: -->
 
 <!--
-The service starts a main goroutine/thread that:
+The service starts an asyncio event loop that:
 1. Loads configuration
 2. Initializes subsystems (database, cache, etc.)
 3. Starts the listener (HTTP/gRPC/Unix socket)
-4. Blocks on the signal channel
-5. On SIGTERM/SIGINT: calls shutdown on all subsystems in reverse order
+4. Blocks on the signal handlers
+5. On SIGTERM/SIGINT: cancels all tasks and shuts down subsystems in reverse order
 
-Worker goroutines/threads are managed by a pool with a configurable size.
+Worker tasks are managed by an asyncio task group or a bounded queue.
 Each worker handles one request/job at a time.
 -->
 
@@ -233,9 +210,8 @@ Each worker handles one request/job at a time.
 ```
 <!-- Document any specific concurrency patterns enforced in this project -->
 <!-- Example: -->
-<!-- Go: context.Context propagated through all goroutines for cancellation -->
-<!-- Go: sync.WaitGroup used to track in-flight requests during shutdown -->
-<!-- Python: asyncio event loop; blocking calls offloaded to thread pool -->
+<!-- asyncio event loop; one coroutine per request; blocking calls offloaded to thread pool -->
+<!-- asyncio.run() only at the top level; never nested -->
 ```
 
 ---
@@ -257,11 +233,10 @@ Each worker handles one request/job at a time.
 init/
 - app_name.service      # systemd unit file (Linux)
 - com.example.app_name.plist  # launchd plist (macOS)
-- app_name_windows.go   # Windows service wrapper (if applicable)
 ```
 
 When modifying service behavior (startup, shutdown, dependencies), update the
-init files to match. Do not leave init files out of sync with the binary's behavior.
+init files to match. Do not leave init files out of sync with the application's behavior.
 
 ---
 
@@ -273,7 +248,7 @@ Behavioral rules are in `.clauderules`. Key reminders for this project:
 - Underscores in all filenames
 - Explain WHY in comments, not WHAT
 - Errors must be handled explicitly - no silent failures
-- No goroutine/thread leaks - every goroutine must have a defined exit condition
+- No dangling asyncio tasks - every task must be awaited or explicitly tracked
 - Conventional commits: `type(scope): description`
 
 ### Language-Specific Notes
@@ -281,10 +256,8 @@ Behavioral rules are in `.clauderules`. Key reminders for this project:
 ```
 <!-- Add any project-specific style deviations or enforced patterns here -->
 <!-- Example: -->
-<!-- Go: all errors wrapped with fmt.Errorf("context: %w", err) -->
-<!-- Go: context.Context is always the first argument -->
-<!-- Python: type hints required on all public functions -->
-<!-- Python: asyncio.run() only at the top level; never nested -->
+<!-- Type hints required on all public functions -->
+<!-- asyncio.run() only at the top level; never nested -->
 ```
 
 ---

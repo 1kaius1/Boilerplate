@@ -1,4 +1,4 @@
-# CLAUDE.md - Web Application
+# CLAUDE.md - Web Application (PHP / Laravel)
 
 This file provides project context and conventions for AI-assisted development sessions.
 Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
@@ -19,54 +19,25 @@ who uses it, and what is the rough scale it is designed for. -->
 
 | Component       | Choice                                           | Reason                    |
 |-----------------|--------------------------------------------------|---------------------------|
-| Language        | <!-- Go / Python / PHP -->                       | <!-- Why -->              |
-| Framework       | <!-- gin, chi, FastAPI, Flask, Laravel, etc. --> | <!-- Why -->              |
+| Language        | PHP                                               | <!-- Why -->              |
+| Framework       | Laravel                                           | <!-- Why -->              |
 | Database        | <!-- PostgreSQL / SQLite / MySQL -->             | <!-- Why -->              |
-| ORM / query     | <!-- sqlc, GORM, SQLAlchemy, Eloquent, etc. -->  | <!-- Why -->              |
-| Auth            | <!-- JWT, session, OAuth2, Laravel Sanctum/Passport --> | <!-- Why -->       |
+| ORM / query     | Eloquent (via Repositories)                       | <!-- Why -->              |
+| Auth            | <!-- Laravel Sanctum / Laravel Passport -->      | <!-- Why -->              |
 | Key dependency  | <!-- name -->                                    | <!-- What it provides --> |
 
 ### Frontend
 
 | Component       | Choice                                                  | Reason       |
 |-----------------|---------------------------------------------------------|--------------|
-| Approach        | <!-- SPA, SSR, MPA, HTMX, Blade, Inertia.js -->        | <!-- Why --> |
-| Framework       | <!-- React, Vue, HTMX, Blade templates, etc. -->        | <!-- Why --> |
-| Build tool      | <!-- Vite, esbuild, none -->                            | <!-- Why --> |
+| Approach        | <!-- Blade, Inertia.js, API-only -->                    | <!-- Why --> |
+| Framework       | <!-- Blade templates, Vue, React -->                    | <!-- Why --> |
+| Build tool      | Vite                                                     | <!-- Why --> |
 | CSS approach    | <!-- Tailwind, plain CSS, etc. -->                      | <!-- Why --> |
 
 ---
 
 ## Repository Layout
-
-### Go / Python Projects
-
-```
-project_name/
-- cmd/                  # Entry point(s) (Go)
-- internal/             # Private backend packages (Go)
-- pkg/                  # Exported backend packages (Go)
-- src/                  # Backend source modules (Python)
-- web/                  # All frontend source
-  - src/                # Frontend source files (JS/TS/CSS)
-  - public/             # Static files served as-is
-  - dist/               # Built frontend output (gitignored)
-- templates/            # Server-side HTML templates (if applicable)
-- migrations/           # Database migration files (numbered, sequential)
-- scripts/              # Helper, build, and deployment scripts
-- tests/                # Test suite
-- .env.example          # Example environment variables (never .env itself)
-- .clauderules
-- ARCHITECTURE.md
-- CHANGELOG.md
-- CLAUDE.md
-- CONTRIBUTING.md
-- PLANNING.md
-- README.md
-- LICENSE
-```
-
-### Laravel Projects
 
 ```
 project_name/
@@ -121,13 +92,6 @@ project_name/
 ### Prerequisites
 
 ```bash
-# Go
-# Go 1.22+
-
-# Python
-# Python 3.11+, pip
-
-# PHP / Laravel
 # PHP 8.2+
 # Composer 2.x
 # Node.js 20+ (for Vite asset compilation)
@@ -137,7 +101,6 @@ project_name/
 ### Environment Setup
 
 ```bash
-# All project types
 cp .env.example .env
 # Edit .env and fill in required values - never commit .env
 ```
@@ -145,36 +108,20 @@ cp .env.example .env
 ### Database Setup
 
 ```bash
-# PostgreSQL (all project types)
-createdb app_name_dev
+# Create the database first if using PostgreSQL or MySQL:
+# createdb app_name_dev  (PostgreSQL)
+# mysql -e "CREATE DATABASE app_name_dev;"  (MySQL)
 
-# Go - run migrations
-migrate -path migrations/ -database "${DATABASE_URL}" up
-
-# Python - run migrations
-alembic upgrade head
-
-# Laravel - generate app key and run migrations
 php artisan key:generate
 php artisan migrate
 
-# Laravel - seed development data (if seeders exist)
+# Seed development data (if seeders exist)
 php artisan db:seed
 ```
 
 ### Backend
 
 ```bash
-# Go
-go run ./cmd/app_name
-
-# Python (FastAPI / Starlette)
-uvicorn app_name.main:app --reload
-
-# Python (Flask)
-flask run
-
-# Laravel
 php artisan serve
 # Default: http://localhost:8000
 ```
@@ -182,7 +129,7 @@ php artisan serve
 ### Frontend
 
 ```bash
-# Install dependencies (all project types using Vite/npm)
+# Install dependencies
 npm install
 
 # Development server with hot reload
@@ -223,24 +170,15 @@ php artisan make:service ExampleService   # requires a custom stub or manual cre
 ## Running Tests
 
 ```bash
-# Go
-go test ./...
-go test -race ./...
-
-# Python
-pytest tests/unit/
-pytest tests/integration/
-
-# Laravel
 php artisan test
 # or
 ./vendor/bin/phpunit
 
-# Laravel - specific test suite
+# Specific test suite
 php artisan test --testsuite=Unit
 php artisan test --testsuite=Feature
 
-# Laravel - with coverage (requires Xdebug or PCOV)
+# With coverage (requires Xdebug or PCOV)
 php artisan test --coverage
 
 # Frontend
@@ -275,43 +213,23 @@ file. The `~/.app_name/` home directory convention does not apply here.
 ### Environment Variables
 
 | Variable        | Required | Default     | Description                                    |
-|-----------------|----------|-------------|------------------------------------------------|
-| `APP_KEY`       | Yes (Laravel) | -      | Laravel application key - generate with `php artisan key:generate` |
-| `APP_ENV`       | Yes (Laravel) | `local` | Environment: local, staging, production      |
-| `APP_DEBUG`     | No (Laravel) | `false` | Debug mode - never true in production         |
-| `APP_URL`       | Yes (Laravel) | -      | Full base URL of the application              |
-| `DATABASE_URL`  | Yes (non-Laravel) | -  | Full database connection string               |
-| `DB_CONNECTION` | Yes (Laravel) | `mysql` | Database driver: mysql, pgsql, sqlite        |
-| `DB_HOST`       | Yes (Laravel) | `127.0.0.1` | Database host                            |
-| `DB_PORT`       | Yes (Laravel) | `3306` | Database port                                |
-| `DB_DATABASE`   | Yes (Laravel) | -      | Database name                                 |
-| `DB_USERNAME`   | Yes (Laravel) | -      | Database user                                 |
-| `DB_PASSWORD`   | Yes (Laravel) | -      | Database password                             |
-| `SECRET_KEY`    | Yes (non-Laravel) | -  | Secret key for sessions / JWT signing         |
-| `LOG_LEVEL`     | No       | `info`      | Log verbosity                                  |
-| <!-- VAR -->    |          |             | <!-- description -->                           |
+|-----------------|----------|-------------|-------------------------------------------------|
+| `APP_KEY`       | Yes      | -           | Laravel application key - generate with `php artisan key:generate` |
+| `APP_ENV`       | Yes      | `local`     | Environment: local, staging, production          |
+| `APP_DEBUG`     | No       | `false`     | Debug mode - never true in production            |
+| `APP_URL`       | Yes      | -           | Full base URL of the application                 |
+| `DB_CONNECTION` | Yes      | `mysql`     | Database driver: mysql, pgsql, sqlite            |
+| `DB_HOST`       | Yes      | `127.0.0.1` | Database host                                    |
+| `DB_PORT`       | Yes      | `3306`      | Database port                                    |
+| `DB_DATABASE`   | Yes      | -           | Database name                                    |
+| `DB_USERNAME`   | Yes      | -           | Database user                                    |
+| `DB_PASSWORD`   | Yes      | -           | Database password                                |
+| `LOG_LEVEL`     | No       | `info`      | Log verbosity                                    |
+| <!-- VAR -->    |          |             | <!-- description -->                             |
 
 ---
 
 ## Database Migrations
-
-### Go
-
-```bash
-migrate -path migrations/ -database "${DATABASE_URL}" up
-migrate -path migrations/ -database "${DATABASE_URL}" version
-migrate -path migrations/ -database "${DATABASE_URL}" down 1
-```
-
-### Python (Alembic)
-
-```bash
-alembic upgrade head
-alembic current
-alembic downgrade -1
-```
-
-### Laravel
 
 ```bash
 # Apply pending migrations
@@ -339,8 +257,8 @@ production seeders.**
 ## API Conventions
 
 - Style: <!-- REST / GraphQL / RPC -->
-- Base path: <!-- /api/v1 (Go/Python) or /api/v1 (Laravel - defined in routes/api.php) -->
-- Auth: <!-- Bearer token / session cookie / Laravel Sanctum / Laravel Passport -->
+- Base path: `/api/v1` (defined in `routes/api.php`)
+- Auth: <!-- Bearer token / Laravel Sanctum / Laravel Passport -->
 - Error response format:
 
 ```json
@@ -387,15 +305,13 @@ production seeders.**
 ## Frontend Conventions
 
 ```
-web/src/  (Go/Python)  or  resources/js/  (Laravel)
+resources/js/
 - components/     # Reusable UI components
 - pages/          # Page-level components / route handlers
-- api/            # API client functions - one file per resource (Go/Python)
 - styles/         # Global styles and theme definitions
 - utils/          # Shared utility functions
 ```
 
-- API calls centralized in `api/` (Go/Python) - never fetch from components directly
 - No inline styles - use Tailwind classes / CSS modules / stylesheet
 - <!-- Any other project-specific frontend conventions -->
 
@@ -419,15 +335,6 @@ Behavioral rules are in `.clauderules`. Key reminders:
 - No direct Eloquent queries outside of Repository classes
 - Validation always in Form Request classes (`app/Http/Requests/`) - never in controllers
 - Never use `dd()`, `dump()`, `var_dump()`, or `ray()` in committed code
-
-### Go / Python Specific
-
-```
-<!-- Add project-specific style notes here -->
-<!-- Go: errors wrapped with fmt.Errorf("context: %w", err) -->
-<!-- Go: context.Context is first argument on all handler and service functions -->
-<!-- Python: type hints required on all public functions -->
-```
 
 ---
 

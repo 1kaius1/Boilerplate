@@ -1,4 +1,4 @@
-# CLAUDE.md - GUI Application
+# CLAUDE.md - GUI Application (Python)
 
 This file provides project context and conventions for AI-assisted development sessions.
 Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
@@ -18,9 +18,9 @@ behavioral rules that govern this session.
 
 | Component       | Choice                        | Reason                              |
 |-----------------|-------------------------------|-------------------------------------|
-| Language        | <!-- Go/Python -->            | <!-- Why this language -->          |
+| Language        | Python                        | <!-- Why this language -->          |
 | GUI toolkit     | <!-- GTK4/Qt6/webview/etc. --> | <!-- Why this toolkit -->          |
-| Bindings        | <!-- gotk4, PyGObject, etc. --> | <!-- Why -->                       |
+| Bindings        | <!-- PyGObject, PySide6, etc. --> | <!-- Why -->                    |
 | Config format   | <!-- YAML/JSON/TOML -->       | <!-- Why -->                        |
 | Key dependency  | <!-- name -->                 | <!-- What it provides -->           |
 | Key dependency  | <!-- name -->                 | <!-- What it provides -->           |
@@ -31,11 +31,8 @@ behavioral rules that govern this session.
 
 ```
 project_name/
-- cmd/                  # Entry point (Go) or main script (Python)
-- internal/             # Private packages (Go)
-- pkg/                  # Exported packages (Go)
-- src/                  # Source modules (Python)
-- ui/                   # UI definition files (.ui, .glade, .qml, etc.)
+- src/                  # Source modules
+- ui/                   # UI definition files (.ui, .qml, etc.)
 - assets/               # Icons, images, and static resources
 - resources/            # Compiled/embedded resource bundles
 - scripts/              # Build helpers and packaging scripts
@@ -60,9 +57,8 @@ project_name/
 ### Prerequisites
 
 ```bash
-# List runtime, build, and toolkit-specific dependencies
+# Python 3.11+
 # Example (GTK4 on Linux):
-# Go 1.22+ or Python 3.11+
 # GTK4 development libraries: sudo apt install libgtk-4-dev
 # gobject-introspection: sudo apt install libgirepository1.0-dev
 
@@ -73,10 +69,7 @@ project_name/
 ### Build
 
 ```bash
-# Go + GTK4
-go build -o bin/app_name ./cmd/app_name
-
-# Python - install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
 # If using a resource compiler (e.g. glib-compile-resources):
@@ -87,10 +80,6 @@ glib-compile-resources --target=resources/resources.c \
 ### Run in Development
 
 ```bash
-# Go
-go run ./cmd/app_name
-
-# Python
 python -m app_name
 # or
 python src/app_name/main.py
@@ -115,16 +104,9 @@ app_name --verbose
 ## Running Tests
 
 ```bash
-# Go
-go test ./...
-
-# Go - with race detector
-go test -race ./...
-
-# Python
 pytest
 
-# Python - with coverage
+# With coverage
 pytest --cov=src tests/
 
 # UI/integration tests (if applicable)
@@ -174,7 +156,7 @@ The application uses a single main window with:
 - A statusbar at the bottom
 
 UI definitions live in ui/ as .ui (GtkBuilder XML) / .qml / etc.
-The main window class is in src/window.py or internal/ui/window.go.
+The main window class is in src/window.py.
 -->
 
 ### Toolkit-Specific Notes
@@ -235,8 +217,7 @@ Behavioral rules are in `.clauderules`. Key reminders for this project:
 ```
 <!-- Add any project-specific style deviations or enforced patterns here -->
 <!-- Example: -->
-<!-- Go: all errors wrapped with fmt.Errorf("context: %w", err) -->
-<!-- Python: type hints required on all public functions -->
+<!-- Type hints required on all public functions -->
 ```
 
 ---
