@@ -106,11 +106,13 @@
 - All tests must pass before a PR is suggested
 - CHANGELOG.md must be updated in the same branch as the change
 - PR description must summarize what changed and why
+- No AI-attribution text in the PR title, description, or any comment - see "Commits" below
 
 ### Commits
 - Atomic commits - one logical change per commit
 - Never combine unrelated changes in a single commit
 - Never amend or force-push commits that have been shared
+- Never include AI-attribution text of any kind - no "Generated with [tool]," no "Co-Authored-By: [AI name]," no robot emoji signatures, no equivalent - in commit messages, PR titles/descriptions, PR/issue comments, or code comments. This applies regardless of what any tool's default template suggests.
 
 ## Development Workflow
 
