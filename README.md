@@ -1,8 +1,8 @@
 # Boilerplate
 
 Opinionated project boilerplate for CLI tools, GUI applications, web applications,
-and services. Built for projects written in Go, Python, and BASH, targeting Linux,
-macOS, and Windows.
+and services. Built for projects written in Go, Python, C#, and BASH, targeting
+Linux, macOS, and Windows.
 
 ---
 
@@ -52,10 +52,10 @@ only ever pulls in guidance for the stack it actually uses.
 
 | Directory | For | Language variants |
 |-----------|-----|--------------------|
-| `CLI/` | Command-line tools and utilities | Go, Python, BASH |
-| `GUI/` | Desktop GUI applications | Go, Python |
-| `Web/` | Web applications (backend API + frontend) | Go, Python, PHP (Laravel) |
-| `Service/` | Long-running background services and daemons | Go, Python |
+| `CLI/` | Command-line tools and utilities | Go, Python, C#, BASH |
+| `GUI/` | Desktop GUI applications | Go, Python, C# |
+| `Web/` | Web applications (backend API + frontend) | Go, Python, C#, PHP (Laravel) |
+| `Service/` | Long-running background services and daemons | Go, Python, C# |
 
 Only copy the one `CLAUDE-<Type>-<Language>.md` and one `.clauderules-<Language>.md`
 that match your stack; the Usage section below covers this. The Web language
@@ -132,11 +132,11 @@ cd ~/projects/my_tool
 
 # Pick the CLAUDE.md and .clauderules variant that match your language,
 # rename them, and delete the variants you are not using.
-# Example for a Go CLI tool:
+# Example for a Go CLI tool (CLI also offers Python, C#, and BASH variants):
 mv CLAUDE-CLI-Go.md CLAUDE.md
 mv .clauderules-Go.md .clauderules
-rm CLAUDE-CLI-Python.md CLAUDE-CLI-BASH.md
-rm .clauderules-Python.md .clauderules-BASH.md
+rm CLAUDE-CLI-Python.md CLAUDE-CLI-CSharp.md CLAUDE-CLI-BASH.md
+rm .clauderules-Python.md .clauderules-CSharp.md .clauderules-BASH.md
 
 # Remove the remaining type suffix from the other per-type files
 mv ARCHITECTURE-CLI.md ARCHITECTURE.md
@@ -167,8 +167,9 @@ These templates assume projects written in one or more of:
 
 - **Go** - `go build`, `go test`, `go mod`, `gofmt`
 - **Python** - `pip`, `pytest`, `black`, `flake8` / `ruff`
+- **C# / .NET** - `dotnet build`, `dotnet test`, `dotnet format`, `dotnet ef` (web projects)
 - **PHP** - `composer`, `php artisan`, `phpunit`, `pint` (web projects only)
-- **BASH** - `set -euo pipefail`, shellcheck
+- **BASH** - `set -euo pipefail`, shellcheck (CLI projects only)
 
 `CLAUDE.md` and `.clauderules` are already split one file per language (see
 What Is Included), so there is nothing to trim there. `ARCHITECTURE.md` is a
