@@ -161,6 +161,78 @@ attention before the documents are useful.
 
 ---
 
+### Repository Setup
+
+Once the local files are in place and placeholders filled in, create and configure
+the actual GitHub repository. This assumes the GitHub CLI (`gh`) is installed and
+authenticated (`gh auth login`).
+
+```bash
+# Create an empty public repo - no --add-readme/--gitignore/--license, since those
+# would have GitHub generate an initial commit itself rather than the one you're
+# about to push
+gh repo create REPO --public
+
+# Initialize locally with the primary branch named explicitly, add the SSH remote,
+# commit, and push
+git init -b master
+git add .
+git commit -m "chore: initial commit"
+git remote add origin git@github.com:OWNER/REPO.git
+git push -u origin master
+```
+
+Branch protection has no dedicated `gh` subcommand - only `gh ruleset check/list/view`
+exist for the newer rulesets system, nothing for creating classic branch protection -
+so this goes through `gh api` directly. Run this only after the first push; a branch
+cannot be protected before it exists.
+
+```bash
+gh api \
+  --method PUT \
+  -H "Accept: application/vnd.github+json" \
+  /repos/OWNER/REPO/branches/master/protection \
+  --input - <<'EOF'
+{
+  "required_status_checks": null,
+  "enforce_admins": false,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0
+  },
+  "restrictions": null
+}
+EOF
+```
+
+Add `"required_status_checks": {"strict": true, "checks": [{"context": "test"}]}`
+once CI exists, replacing `"test"` with the actual job name, to require a passing run
+before merge.
+
+Standardize on squash-only merging with the PR title and description as the commit
+message, enforced structurally rather than left as a convention someone can ignore -
+merge-commit and rebase-merge are disabled outright, leaving squash as the only
+option the GitHub UI offers. `gh repo edit --squash-merge-commit-message` may not
+exist depending on your installed `gh` version; the REST API works regardless:
+
+```bash
+gh api \
+  --method PATCH \
+  -H "Accept: application/vnd.github+json" \
+  /repos/OWNER/REPO \
+  --input - <<'EOF'
+{
+  "allow_squash_merge": true,
+  "allow_merge_commit": false,
+  "allow_rebase_merge": false,
+  "delete_branch_on_merge": true,
+  "squash_merge_commit_title": "PR_TITLE",
+  "squash_merge_commit_message": "PR_BODY"
+}
+EOF
+```
+
+---
+
 ## Languages and Tooling
 
 These templates assume projects written in one or more of:
