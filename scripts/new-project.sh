@@ -13,16 +13,22 @@ BOILERPLATE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: new-project.sh --type <CLI|GUI|Web|Service> --language <Go|Python|CSharp|BASH|PHP> \
+Usage: new-project.sh --type <CLI|GUI|Web|Service|Godot> \
+       --language <Go|Python|CSharp|BASH|PHP|GDScript> \
        --dest <path> --app-name <snake_case_name> --owner <github_owner> --repo <repo_name> \
        [--project-owner-name "<Display Name>"] [--project-owner-email <email>] \
        [--governing-law <jurisdiction>] [--dispute-jurisdiction <jurisdiction>] \
        [--init-repo] [--private] [--yes]
 
-  --type                   Project type directory to copy (CLI, GUI, Web, Service)
-  --language               Language variant to keep (Go, Python, CSharp, BASH, PHP)
+  --type                   Project type directory to copy (CLI, GUI, Web, Service, Godot)
+  --language               Language variant to keep (Go, Python, CSharp, BASH, PHP, GDScript)
                            Valid per type: CLI=Go,Python,CSharp,BASH  GUI=Go,Python,CSharp
                                            Web=Go,Python,CSharp,PHP   Service=Go,Python,CSharp
+                                           Godot=GDScript,CSharp
+                           Godot's rule files live under Godot/.claude/rules/ rather than
+                           Universal/.claude/rules/, since GDScript is Godot-only and its
+                           C# rules (godot_csharp.md) are additive to, not a replacement
+                           for, the generic csharp.md - both stay for a Godot+CSharp project.
   --dest                   Target directory. First run: must not exist yet, gets scaffolded.
                            Re-run with --init-repo pointed at the same --dest to skip
                            scaffolding and just push/configure GitHub once you've filled
@@ -95,7 +101,8 @@ case "$(echo "$TYPE" | tr '[:upper:]' '[:lower:]')" in
   gui) TYPE="GUI" ;;
   web) TYPE="Web" ;;
   service) TYPE="Service" ;;
-  *) echo "Error: --type must be one of CLI, GUI, Web, Service" >&2; exit 1 ;;
+  godot) TYPE="Godot" ;;
+  *) echo "Error: --type must be one of CLI, GUI, Web, Service, Godot" >&2; exit 1 ;;
 esac
 
 case "$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')" in
@@ -104,7 +111,8 @@ case "$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')" in
   csharp|c#) LANGUAGE="CSharp" ;;
   bash) LANGUAGE="BASH" ;;
   php) LANGUAGE="PHP" ;;
-  *) echo "Error: --language must be one of Go, Python, CSharp, BASH, PHP" >&2; exit 1 ;;
+  gdscript) LANGUAGE="GDScript" ;;
+  *) echo "Error: --language must be one of Go, Python, CSharp, BASH, PHP, GDScript" >&2; exit 1 ;;
 esac
 
 case "$TYPE:$LANGUAGE" in
@@ -112,6 +120,7 @@ case "$TYPE:$LANGUAGE" in
   GUI:Go|GUI:Python|GUI:CSharp) ;;
   Web:Go|Web:Python|Web:CSharp|Web:PHP) ;;
   Service:Go|Service:Python|Service:CSharp) ;;
+  Godot:GDScript|Godot:CSharp) ;;
   *) echo "Error: $LANGUAGE is not a valid language for type $TYPE (see --help)" >&2; exit 1 ;;
 esac
 
@@ -137,12 +146,30 @@ scaffold() {
 
   # Prune .claude/rules/ language files that were not chosen. universal.md
   # and the type file (e.g. cli.md) always stay - only language files vary.
-  KEEP_LANG="$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')"
-  for lang in go python csharp bash php; do
-    if [ "$lang" != "$KEEP_LANG" ] && [ -f ".claude/rules/${lang}.md" ]; then
-      rm ".claude/rules/${lang}.md"
+  if [ "$TYPE" = "Godot" ]; then
+    # Godot's language files live under Godot/.claude/rules/, not
+    # Universal/.claude/rules/ - GDScript is Godot-only, and the Godot C#
+    # rules (godot_csharp.md) are additive to the generic csharp.md, not a
+    # replacement for it, so csharp.md stays for a Godot+CSharp project.
+    # None of Universal's five language files apply to a Godot+GDScript
+    # project, since GDScript isn't one of them.
+    if [ "$LANGUAGE" = "GDScript" ]; then
+      rm -f ".claude/rules/godot_csharp.md"
+      rm -f ".claude/rules/go.md" ".claude/rules/python.md" ".claude/rules/csharp.md" \
+            ".claude/rules/bash.md" ".claude/rules/php.md"
+    else
+      rm -f ".claude/rules/gdscript.md"
+      rm -f ".claude/rules/go.md" ".claude/rules/python.md" ".claude/rules/bash.md" \
+            ".claude/rules/php.md"
     fi
-  done
+  else
+    KEEP_LANG="$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')"
+    for lang in go python csharp bash php; do
+      if [ "$lang" != "$KEEP_LANG" ] && [ -f ".claude/rules/${lang}.md" ]; then
+        rm ".claude/rules/${lang}.md"
+      fi
+    done
+  fi
 
   # --- Placeholder substitution ---
   # PROJECT_OWNER_NAME must be replaced before OWNER - it contains OWNER as
@@ -239,10 +266,23 @@ write_gitignore() {
         echo "/storage/logs/"
         echo ".phpunit.result.cache"
         echo "" ;;
+      GDScript)
+        : ;;
     esac
     if [ "$TYPE" = "Web" ]; then
       echo "# Web: never commit real environment values"
       echo ".env"
+      echo ""
+    fi
+    if [ "$TYPE" = "Godot" ]; then
+      echo "# Godot: generated editor cache, never committed"
+      echo ".godot/"
+      echo ""
+      echo "# export_presets.cfg can contain machine-specific paths and signing"
+      echo "# credentials (e.g. an Android keystore password) - gitignored by"
+      echo "# default; remove this line if this project keeps it secret-free"
+      echo "# and wants export config under version control"
+      echo "export_presets.cfg"
       echo ""
     fi
   } > .gitignore

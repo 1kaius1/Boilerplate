@@ -62,6 +62,7 @@ variant **per supported language**, and one type-specific rules file under `.cla
 | `GUI/` | Desktop GUI applications | Go, Python, C# |
 | `Web/` | Web applications (backend API + frontend) | Go, Python, C#, PHP (Laravel) |
 | `Service/` | Long-running background services and daemons | Go, Python, C# |
+| `Godot/` | Godot game projects | GDScript, C# (Godot's ".NET"/"Mono" build) |
 
 Only copy the one `CLAUDE-<Type>-<Language>.md` that matches your stack; the Usage
 section below covers this. The language rule files under `.claude/rules/` do not need
@@ -70,6 +71,19 @@ the same treatment - a rules file for a language you are not using is simply ine
 leaving it in place. That matters for the monorepo case covered below. The `php.md`
 rules file is fully self-contained - Laravel-specific rules are included directly in
 it, and there is no separate addendum file to append.
+
+**`Godot/` is the one exception to "language rule files live under
+`Universal/.claude/rules/`."** Its language files (`gdscript.md`,
+`godot_csharp.md`) live inside `Godot/.claude/rules/` instead, for two
+reasons: GDScript is Godot-only, so it has no reason to be a `Universal/`
+file used by other types; and `godot_csharp.md` is deliberately an *addendum*
+to the generic `Universal/.claude/rules/csharp.md`, not a replacement for
+it - a Godot+C# project keeps both, since ordinary C# conventions (naming,
+`.csproj` dependency tracking, the SPDX header syntax) still apply to a
+script attached to a node. Naming it anything ending in `csharp.md` would
+also collide at the same destination path when `Universal/` is copied in
+after the type directory (whichever copy runs last would silently overwrite
+the other) - `godot_csharp.md` avoids that collision by construction.
 
 ### How Claude Code Rules Actually Load
 
@@ -143,6 +157,33 @@ so they get their own self-contained root instead: `/opt/app_name/`, split into
 `APP_NAME_HOME`. Web applications follow twelve-factor conventions and are configured
 exclusively via environment variables. This three-way distinction is explicit in both
 the `.claude/rules/` type files and the `CLAUDE.md` variants.
+
+**Godot is its own project type, not a language under `GUI/`.**
+A Godot project's real structure - scenes, nodes, signals, the resource system,
+`user://` for storage, export templates instead of `dotnet publish` - has nothing in
+common with the desktop-toolkit assumptions `GUI/` is built around (MVVM,
+Avalonia/MAUI/WPF, `~/.app_name/`, GTK/Qt "Toolkit-Specific Notes"). Folding Godot in
+as a `GUI/` language would have meant `gui.md` was actively wrong the moment Godot was
+chosen - it says config lives in `~/.app_name/`, but Godot's idiomatic storage is
+`user://`, an engine-managed path that resolves differently per platform and has
+nothing to do with a literal home directory. The type/language split already used
+everywhere else in this boilerplate - type captures structural/architectural
+convention, language captures syntax-level convention - puts Godot itself squarely in
+"type."
+
+**Godot's C# rules are an addendum to the generic C# rules, not a fork of them.**
+Checked against `Universal/.claude/rules/csharp.md`: naming conventions, `.csproj`
+dependency tracking, and the SPDX header syntax all still apply unmodified to a
+script attached to a Godot node - a Godot C# script is still an ordinary C# class as
+far as those conventions go. What's missing from the generic file is Godot-specific:
+the `partial class` requirement Godot's source generators impose, `_Process(double
+delta)` taking a `double` (not `float` - a common porting mistake from Godot 3 or
+general C# game-dev habits), `[Export]`/`[Signal]`/`[GlobalClass]` attributes, and
+that `Path.Combine` is not how most Godot code should touch the filesystem in the
+first place (`res://`/`user://` virtual paths are). `Godot/.claude/rules/
+godot_csharp.md` holds only that delta, and both files stay loaded together for a
+Godot+C# project - see "What Is Included" above for why the file lives in `Godot/`
+rather than `Universal/`.
 
 **Keep a Changelog format.**
 All projects use [keepachangelog.com](https://keepachangelog.com/en/1.1.0/) with
@@ -387,6 +428,11 @@ These templates assume projects written in one or more of:
 - **C# / .NET** - `dotnet build`, `dotnet test`, `dotnet format`, `dotnet ef` (web projects)
 - **PHP** - `composer`, `php artisan`, `phpunit`, `pint` (web projects only)
 - **BASH** - `set -euo pipefail`, shellcheck (CLI projects only)
+- **GDScript** - Godot's built-in scripting language, no external toolchain beyond
+  the Godot editor itself (Godot projects only)
+- **C# / .NET on Godot** - same `dotnet`/NuGet tooling as generic C#, plus the Godot
+  editor and matching export templates; Godot 4.x calls this build ".NET" (Godot 3.x
+  called the same thing "Mono") (Godot projects only)
 
 `CLAUDE.md` and the `.claude/rules/` language files are already split one file per
 language (see What Is Included), so there is nothing to trim there. `ARCHITECTURE.md` is a

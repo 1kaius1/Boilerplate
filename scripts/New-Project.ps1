@@ -24,10 +24,10 @@
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('CLI', 'GUI', 'Web', 'Service', IgnoreCase = $true)]
+    [Parameter(Mandatory = $true)][ValidateSet('CLI', 'GUI', 'Web', 'Service', 'Godot', IgnoreCase = $true)]
     [string]$Type,
 
-    [Parameter(Mandatory = $true)][ValidateSet('Go', 'Python', 'CSharp', 'BASH', 'PHP', IgnoreCase = $true)]
+    [Parameter(Mandatory = $true)][ValidateSet('Go', 'Python', 'CSharp', 'BASH', 'PHP', 'GDScript', IgnoreCase = $true)]
     [string]$Language,
 
     [Parameter(Mandatory = $true)][string]$Dest,
@@ -54,21 +54,28 @@ switch ($Type.ToLower()) {
     'gui'     { $Type = 'GUI' }
     'web'     { $Type = 'Web' }
     'service' { $Type = 'Service' }
+    'godot'   { $Type = 'Godot' }
 }
 switch ($Language.ToLower()) {
-    'go'     { $Language = 'Go' }
-    'python' { $Language = 'Python' }
-    'csharp' { $Language = 'CSharp' }
-    'bash'   { $Language = 'BASH' }
-    'php'    { $Language = 'PHP' }
+    'go'       { $Language = 'Go' }
+    'python'   { $Language = 'Python' }
+    'csharp'   { $Language = 'CSharp' }
+    'bash'     { $Language = 'BASH' }
+    'php'      { $Language = 'PHP' }
+    'gdscript' { $Language = 'GDScript' }
 }
 
 # --- Validate type/language combination ---
+# Godot's language files live under Godot/.claude/rules/ rather than
+# Universal/.claude/rules/, since GDScript is Godot-only and its C# rules
+# (godot_csharp.md) are additive to, not a replacement for, the generic
+# csharp.md - both stay for a Godot+CSharp project.
 $validCombos = @{
     'CLI'     = @('Go', 'Python', 'CSharp', 'BASH')
     'GUI'     = @('Go', 'Python', 'CSharp')
     'Web'     = @('Go', 'Python', 'CSharp', 'PHP')
     'Service' = @('Go', 'Python', 'CSharp')
+    'Godot'   = @('GDScript', 'CSharp')
 }
 if ($validCombos[$Type] -notcontains $Language) {
     Write-Error "$Language is not a valid language for type $Type. Valid: $($validCombos[$Type] -join ', ')"
@@ -124,6 +131,19 @@ function Write-Gitignore {
     }
     if ($Type -eq 'Web') {
         $lines += @('# Web: never commit real environment values', '.env', '')
+    }
+    if ($Type -eq 'Godot') {
+        $lines += @(
+            '# Godot: generated editor cache, never committed'
+            '.godot/'
+            ''
+            '# export_presets.cfg can contain machine-specific paths and signing'
+            '# credentials (e.g. an Android keystore password) - gitignored by'
+            '# default; remove this line if this project keeps it secret-free'
+            '# and wants export config under version control'
+            'export_presets.cfg'
+            ''
+        )
     }
     Set-Content -Path '.gitignore' -Value $lines
 }
@@ -207,11 +227,31 @@ function Invoke-Scaffold {
 
         # Prune .claude/rules/ language files that were not chosen.
         # universal.md and the type file (e.g. cli.md) always stay.
-        $keepLang = $Language.ToLower()
-        foreach ($lang in @('go', 'python', 'csharp', 'bash', 'php')) {
-            $ruleFile = ".claude/rules/$lang.md"
-            if ($lang -ne $keepLang -and (Test-Path $ruleFile)) {
-                Remove-Item $ruleFile
+        if ($Type -eq 'Godot') {
+            # Godot's language files live under Godot/.claude/rules/, not
+            # Universal/.claude/rules/ - GDScript is Godot-only, and the
+            # Godot C# rules (godot_csharp.md) are additive to the generic
+            # csharp.md, not a replacement for it, so csharp.md stays for a
+            # Godot+CSharp project. None of Universal's five language files
+            # apply to a Godot+GDScript project.
+            if ($Language -eq 'GDScript') {
+                Remove-Item '.claude/rules/godot_csharp.md' -ErrorAction SilentlyContinue
+                foreach ($lang in @('go', 'python', 'csharp', 'bash', 'php')) {
+                    Remove-Item ".claude/rules/$lang.md" -ErrorAction SilentlyContinue
+                }
+            } else {
+                Remove-Item '.claude/rules/gdscript.md' -ErrorAction SilentlyContinue
+                foreach ($lang in @('go', 'python', 'bash', 'php')) {
+                    Remove-Item ".claude/rules/$lang.md" -ErrorAction SilentlyContinue
+                }
+            }
+        } else {
+            $keepLang = $Language.ToLower()
+            foreach ($lang in @('go', 'python', 'csharp', 'bash', 'php')) {
+                $ruleFile = ".claude/rules/$lang.md"
+                if ($lang -ne $keepLang -and (Test-Path $ruleFile)) {
+                    Remove-Item $ruleFile
+                }
             }
         }
 
