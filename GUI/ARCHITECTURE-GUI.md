@@ -221,7 +221,7 @@ assets/
 ### Dependency Philosophy
 
 - Prefer standard library solutions over third-party packages
-- New dependencies require discussion and explicit approval (see .clauderules)
+- New dependencies require discussion and explicit approval (see `.claude/rules/`)
 - Toolkit version pinned to the version available in the target Linux distribution's
   repos to avoid packaging complexity
 

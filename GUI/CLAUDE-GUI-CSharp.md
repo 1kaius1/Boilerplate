@@ -1,8 +1,8 @@
 # CLAUDE.md - GUI Application (C# / .NET)
 
 This file provides project context and conventions for AI-assisted development sessions.
-Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
-behavioral rules that govern this session.
+Read this file and ARCHITECTURE.md before making any changes. Behavioral rules and
+guardrails are auto-loaded from `.claude/rules/` - there is nothing else to open.
 
 ---
 
@@ -41,7 +41,7 @@ project_name/
 - scripts/              # Build helpers and packaging scripts
 - docs/                 # Additional documentation
 - AppName.sln           # Solution file
-- .clauderules          # AI session behavioral rules
+- .claude/              # Auto-loaded rules (.claude/rules/) and settings.json
 - ARCHITECTURE.md       # Component and data flow reference
 - CHANGELOG.md          # Version history (Keep a Changelog format)
 - CLAUDE.md             # This file
@@ -155,15 +155,8 @@ The main window class is in src/AppName/Views/MainWindow.axaml.cs.
 ### Toolkit-Specific Notes
 
 ```
-<!-- Document any toolkit-specific conventions enforced in this project -->
-<!-- Example (Avalonia): -->
-<!-- - MVVM pattern: Views bind to ViewModels via {Binding}; no code-behind business logic -->
-<!-- - CommunityToolkit.Mvvm for ObservableObject / RelayCommand -->
-<!-- - Styles/themes in Styles/ only -->
-
-<!-- Example (MAUI): -->
-<!-- - MVVM pattern with CommunityToolkit.Mvvm -->
-<!-- - Platform-specific code isolated to Platforms/ folders -->
+<!-- Document the conventions enforced for the toolkit actually chosen above -->
+<!-- (MVVM binding rules, where styles/themes live, platform-specific code layout) -->
 ```
 
 ### Cross-Platform UI Notes
@@ -193,13 +186,8 @@ assets/
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders for this project:
-
-- ASCII only in code and comments - no emoji, no em-dashes
-- File names are PascalCase and match the class they contain (standard .NET convention)
-- Explain WHY in comments, not WHAT
-- Errors must be handled explicitly - no silent failures, no swallowed exceptions
-- Conventional commits: `type(scope): description`
+Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
+`universal.md` plus the language and type rule files that apply to this project.
 
 ### Language-Specific Notes
 

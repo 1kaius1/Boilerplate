@@ -23,13 +23,13 @@ Start
 [Entry Point]
  |
  v
-[Config Loading]          <-- ~/.app_name/config.yaml + env vars + flags
+[Config Loading]          <-- /opt/app_name/config/config.yaml + env vars + flags
  |
  v
 [Subsystem Initialization] <-- database, cache, clients, listeners, etc.
  |                             (in dependency order)
  v
-[Write PID File]          <-- ~/.app_name/app_name.pid
+[Write PID File]          <-- /opt/app_name/run/app_name.pid
  |
  v
 [Start Listener]          <-- begin accepting requests / messages
@@ -72,7 +72,7 @@ the composition root and wiring layer.
 
 ### Configuration (`internal/config` or `src/config.py`)
 
-Loads and merges configuration from `~/.app_name/config.yaml`, environment variables,
+Loads and merges configuration from `/opt/app_name/config/config.yaml`, environment variables,
 and CLI flag overrides (in increasing precedence order). Validates all values at
 startup and fails fast on invalid config. Supports live reload on SIGHUP.
 
@@ -139,7 +139,7 @@ pattern used so Claude does not introduce conflicting patterns. -->
 Inbound:
 - <!-- HTTP/gRPC/Unix socket requests -->
 - <!-- message queue / event stream (if applicable) -->
-- Config: ~/.app_name/config.yaml (loaded at start, reloaded on SIGHUP)
+- Config: /opt/app_name/config/config.yaml (loaded at start, reloaded on SIGHUP)
 
 Processing path:
   Request received by transport layer
@@ -170,9 +170,24 @@ Outbound:
 
 ## Configuration and State
 
+### Root Directory
+
+Services default to a single self-contained root, `/opt/app_name/`, overridable in
+whole via `APP_NAME_HOME` (e.g. for local development without root access). This
+differs from the CLI/GUI `~/.app_name/` convention deliberately - a daemon runs under
+a service account, not an interactive login session, so a per-user home directory is
+often unresolvable in that execution context.
+
+| Subdirectory | Purpose |
+|--------------|---------|
+| `config/`    | Configuration files |
+| `data/`      | Persistent application state/data |
+| `logs/`      | Log files (if not writing to stdout/journald) |
+| `run/`       | PID file and other transient runtime state |
+
 ### Config File
 
-- Location: `~/.app_name/config.yaml`
+- Location: `/opt/app_name/config/config.yaml`
 - Format: YAML
 - Loaded at startup; reloaded on SIGHUP without restart
 - Environment variables override config file values
@@ -183,6 +198,7 @@ Outbound:
 
 | Variable                  | Config Key          | Description                         |
 |---------------------------|---------------------|-------------------------------------|
+| `APP_NAME_HOME`           | -                    | Root directory for config, data, logs, and run (default `/opt/app_name`) |
 | `APP_NAME_LOG_LEVEL`      | `log_level`         | Log verbosity                       |
 | `APP_NAME_LOG_FORMAT`     | `log_format`        | Log format: text or json            |
 | `APP_NAME_LISTEN_ADDRESS` | `listen_address`    | Address and port to listen on       |
@@ -190,18 +206,18 @@ Outbound:
 
 ### Runtime Files
 
-| File                         | Purpose                              |
-|------------------------------|--------------------------------------|
-| `~/.app_name/config.yaml`    | Primary configuration                |
-| `~/.app_name/app_name.pid`   | PID file written at startup, removed at shutdown |
-| `~/.app_name/<!-- other -->`  | <!-- purpose -->                    |
+| File                              | Purpose                              |
+|------------------------------------|--------------------------------------|
+| `/opt/app_name/config/config.yaml` | Primary configuration                |
+| `/opt/app_name/run/app_name.pid`   | PID file written at startup, removed at shutdown |
+| `/opt/app_name/data/<!-- other -->` | <!-- purpose -->                    |
 
 ### Persistence
 
 <!-- Describe what is persisted, where, and the failure characteristics. -->
 
 - <!-- Example: PostgreSQL via DATABASE_URL - primary data store -->
-- <!-- Example: local SQLite at ~/.app_name/data.db - embedded store -->
+- <!-- Example: local SQLite at /opt/app_name/data/data.db - embedded store -->
 - <!-- Example: no persistence - stateless service -->
 
 ---
@@ -263,7 +279,8 @@ separate API doc or OpenAPI spec if one exists. -->
 ### launchd (macOS)
 
 - Plist: `init/com.example.app_name.plist`
-- Runs as user agent (LaunchAgents) or system daemon (LaunchDaemons) depending on use case
+- Installed as a LaunchDaemon (`/Library/LaunchDaemons/`), not a LaunchAgent - a
+  daemon must start at boot and run independent of any user session
 
 ### Windows Service
 
@@ -281,7 +298,7 @@ separate API doc or OpenAPI spec if one exists. -->
 ### Dependency Philosophy
 
 - Prefer standard library solutions over third-party packages
-- New dependencies require discussion and explicit approval (see .clauderules)
+- New dependencies require discussion and explicit approval (see `.claude/rules/`)
 - Each dependency must justify its maintenance and security audit burden
 
 ---

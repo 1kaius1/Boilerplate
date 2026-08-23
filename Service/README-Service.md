@@ -71,17 +71,19 @@ pip install .
 Run in the foreground for testing:
 
 ```bash
-app_name --config ~/.app_name/config.yaml --verbose
+app_name --verbose
 ```
 
 ---
 
 ## Configuration
 
-On first run, `app_name` creates a default config file at `~/.app_name/config.yaml`.
+On first run, `app_name` creates a default config file at
+`/opt/app_name/config/config.yaml`. Set `APP_NAME_HOME` to run against a different
+root - useful for local development without root access.
 
 ```yaml
-# ~/.app_name/config.yaml
+# /opt/app_name/config/config.yaml
 
 # Address and port to listen on (default: 127.0.0.1:<!-- PORT -->)
 listen_address: "127.0.0.1:<!-- PORT -->"
@@ -102,7 +104,8 @@ shutdown_timeout_seconds: 30
 
 | Variable                  | Default         | Description                         |
 |---------------------------|-----------------|-------------------------------------|
-| `APP_NAME_CONFIG`         | `~/.app_name/config.yaml` | Path to config file       |
+| `APP_NAME_HOME`           | `/opt/app_name` | Root directory for config, data, logs, and run |
+| `APP_NAME_CONFIG`         | `$APP_NAME_HOME/config/config.yaml` | Path to config file |
 | `APP_NAME_LOG_LEVEL`      | `info`          | Log verbosity                       |
 | `APP_NAME_LOG_FORMAT`     | `text`          | Log format: text or json            |
 | <!-- APP_NAME_XXXX -->    | <!-- default --> | <!-- description -->               |
@@ -140,19 +143,21 @@ sudo systemctl stop app_name
 ### launchd (macOS)
 
 ```bash
-# Install as a user agent
-cp init/com.example.app_name.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.example.app_name.plist
+# Install as a LaunchDaemon - not a LaunchAgent: a daemon must start at boot
+# and run independent of any user session
+sudo cp init/com.example.app_name.plist /Library/LaunchDaemons/
+sudo launchctl load /Library/LaunchDaemons/com.example.app_name.plist
 
 # Stop
-launchctl unload ~/Library/LaunchAgents/com.example.app_name.plist
+sudo launchctl unload /Library/LaunchDaemons/com.example.app_name.plist
 ```
 
 ### Windows Service
 
 ```powershell
-# Install
-sc create app_name binPath= "C:\path\to\app_name.exe --config C:\Users\<user>\.app_name\config.yaml"
+# Install - C:\ProgramData is the Windows equivalent of /opt: machine-wide,
+# not tied to any one user profile
+sc create app_name binPath= "C:\path\to\app_name.exe --config C:\ProgramData\app_name\config\config.yaml"
 sc start app_name
 
 # Stop

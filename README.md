@@ -22,13 +22,17 @@ reflect real conventions rather than leaving everything as a blank placeholder.
 ## What Is Included
 
 Each project type lives in its own subdirectory. Copy the relevant directory into
-your project, pick the language variant of `CLAUDE.md` and `.clauderules` that
-matches your stack, rename files by removing the type/language suffix, and fill in
-the placeholders.
+your project, pick the language variant of `CLAUDE.md` that matches your stack,
+rename files by removing the type/language suffix, and fill in the placeholders.
+
+Behavioral rules for Claude Code live under `.claude/rules/` and `.claude/settings.json`
+- these are real Claude Code conventions that load automatically at session start, not
+a bespoke file Claude has to be told to go read. See "How Claude Code Rules Actually
+Load" below for why this matters and how the pieces fit together.
 
 ### Universals
 
-These files are identical across all project types and languages. Copy them as-is.
+These files are identical across all project types. Copy them as-is.
 
 | File | Purpose |
 |------|---------|
@@ -36,17 +40,19 @@ These files are identical across all project types and languages. Copy them as-i
 | `Universal/PLANNING.md` | Living document for goals, milestones, decisions, and open questions |
 | `Universal/CONTRIBUTING.md` | Contributor workflow, code style, commit format, and CLA reference |
 | `Universal/CLA.md` | Contributor License Agreement with copyright assignment and patent grant |
+| `Universal/.claude/rules/universal.md` | Cross-cutting Claude Code rules: git workflow, scope control, destructive-op confirmation, commit format, security baseline - applies regardless of language or type |
+| `Universal/.claude/rules/<language>.md` | Per-language rules (naming, path handling, license header syntax, dependency manifest) - one file per language (Go, Python, C#, BASH, PHP), auto-scoped by file extension via `paths:` frontmatter |
+| `Universal/.claude/settings.json` | Permission guardrails Claude Code actually enforces (blocks force-push and hard reset, requires confirmation before `rm -rf`) |
 
 ### Per-Type Sets
 
-Each type directory contains one `ARCHITECTURE.md` and one `README.md`, plus a
-`CLAUDE.md` and a `.clauderules` file **per supported language** so that a project
-only ever pulls in guidance for the stack it actually uses.
+Each type directory contains one `ARCHITECTURE.md`, one `README.md`, one `CLAUDE.md`
+variant **per supported language**, and one type-specific rules file under `.claude/rules/`.
 
 | File | Purpose |
 |------|---------|
 | `CLAUDE-<Type>-<Language>.md` | Project onboarding document for Claude Code AI sessions, scoped to one language |
-| `.clauderules-<Language>.md` | Behavioral rules and guardrails for Claude Code agentic sessions, scoped to one language |
+| `.claude/rules/<type>.md` | Behavioral rules specific to this project type (CLI/GUI/Web/Service conventions, where secrets and config live) |
 | `ARCHITECTURE.md` | Technical reference: components, data flow, key design decisions |
 | `README.md` | Public-facing documentation for the project |
 
@@ -57,11 +63,35 @@ only ever pulls in guidance for the stack it actually uses.
 | `Web/` | Web applications (backend API + frontend) | Go, Python, C#, PHP (Laravel) |
 | `Service/` | Long-running background services and daemons | Go, Python, C# |
 
-Only copy the one `CLAUDE-<Type>-<Language>.md` and one `.clauderules-<Language>.md`
-that match your stack; the Usage section below covers this. The Web language
-variants of `.clauderules` are fully self-contained - Laravel-specific rules are
-included directly in `.clauderules-PHP.md`, and there is no separate addendum file
-to append.
+Only copy the one `CLAUDE-<Type>-<Language>.md` that matches your stack; the Usage
+section below covers this. The language rule files under `.claude/rules/` do not need
+the same treatment - a rules file for a language you are not using is simply inert
+(its `paths:` glob never matches anything in your repo), so there is no harm in
+leaving it in place. That matters for the monorepo case covered below. The `php.md`
+rules file is fully self-contained - Laravel-specific rules are included directly in
+it, and there is no separate addendum file to append.
+
+### How Claude Code Rules Actually Load
+
+Earlier versions of this boilerplate used a file named `.clauderules` for behavioral
+rules. That filename is not a Claude Code convention - Claude Code never opens it on
+its own. The only files Claude Code auto-loads are `CLAUDE.md`, `CLAUDE.local.md`, a
+user-level `~/.claude/CLAUDE.md`, and `.claude/rules/*.md` (optionally scoped to a
+glob of file paths via `paths:` frontmatter). Rules that only exist in a file Claude
+never reads do not apply - which meant every rule in this boilerplate that mattered
+most (branch workflow, no direct push to master, confirm before deleting files, no
+AI-attribution in commits) previously had no effect unless someone manually told
+Claude to go open `.clauderules` first.
+
+The current layout fixes this: `.claude/rules/universal.md` and the per-language
+files load automatically for every session, and `.claude/rules/<type>.md` does the
+same. `.claude/settings.json` goes one step further for the handful of rules that
+are load-bearing enough to deserve hard enforcement rather than a prose instruction -
+Claude Code's permission system can outright deny an action (force-push, `git reset
+--hard`) or require explicit confirmation (`rm -rf`), independent of whether the
+model remembers the rule. Branch protection against direct pushes to `master` is
+still handled server-side via GitHub branch protection (see Repository Setup below) -
+that is the correct enforcement point for it, not a local permission rule.
 
 ---
 
@@ -72,31 +102,47 @@ The architecture of a CLI tool and the architecture of a web application have al
 nothing in common. Generic templates produce generic documents. Each variant here
 reflects the actual structure of that project type.
 
-**Very opinionated `.clauderules`.**
-Each `.clauderules-<Language>.md` variant enforces strict rules about branch workflow,
-scope control, destructive operations, dependency discipline, and license headers. The
-intent is that Claude Code sessions require as little supervision as possible on
-process - you should be able to focus on what to build, not on correcting what it touched.
+**Very opinionated `.claude/rules/`.**
+The rules files enforce strict conventions about branch workflow, scope control,
+destructive operations, dependency discipline, and license headers. The intent is
+that Claude Code sessions require as little supervision as possible on process - you
+should be able to focus on what to build, not on correcting what it touched. Unlike a
+plain prose file, these actually auto-load every session (see "How Claude Code Rules
+Actually Load" above), and the handful of rules worth hard-enforcing also live in
+`.claude/settings.json` as permission rules rather than instructions Claude could
+forget.
 
-**One `CLAUDE.md` and `.clauderules` per language, not one file covering all of them.**
+**One `CLAUDE.md` per language, and rules split by both language and type.**
 Earlier versions of this boilerplate had a single `CLAUDE.md` and `.clauderules` per
 project type with every supported language's guidance interleaved (Go build commands
 next to Python build commands next to BASH build commands; CLI/GUI/Service behavioral
 rules all present regardless of which type you picked). That meant every project
 shipped with dead, irrelevant instructions for stacks and app types it didn't use -
-exactly the "generic template" problem this boilerplate exists to avoid. Splitting by
-language means the file you copy in only ever contains guidance for your actual stack.
+exactly the "generic template" problem this boilerplate exists to avoid.
+
+`CLAUDE.md` stays split one file per language, since it is project onboarding prose
+that only makes sense once. Rules are split differently, along two independent axes -
+language (`.claude/rules/go.md`, `python.md`, ...) and type (`.claude/rules/cli.md`,
+`web.md`, ...) - because `.claude/rules/*.md` files can be scoped with `paths:`
+frontmatter and safely coexist. A `web.md` file scoped to nothing in particular
+applies repo-wide in a single-type project; scope it to `paths: ["web/**"]` and it
+only fires inside that subtree of a monorepo. See "Combining Types in One Repository"
+below.
 
 **AGPLv3 / Commercial dual licensing as the default.**
 The license blocks, CLA, and CONTRIBUTING.md are written for projects that are open
 source under AGPLv3 but also available under a commercial license. Adjust the license
 sections if your project uses a different model.
 
-**`~/.app_name/` for local application data; environment variables for web.**
-CLI tools, GUI applications, and daemons store persistent config and data under
-`~/.app_name/`. Web applications follow twelve-factor conventions and are configured
-exclusively via environment variables. This distinction is explicit in both the
-`.clauderules` and the `CLAUDE.md` variants.
+**`~/.app_name/` for CLI/GUI; `/opt/app_name/` for services; environment variables for web.**
+CLI tools and GUI applications run interactively as the logged-in user, so their
+persistent config and data live under that user's home directory: `~/.app_name/`.
+Services and daemons run under a service account with no meaningful home directory,
+so they get their own self-contained root instead: `/opt/app_name/`, split into
+`config/`, `data/`, `logs/`, and `run/` subdirectories, overridable as a whole via
+`APP_NAME_HOME`. Web applications follow twelve-factor conventions and are configured
+exclusively via environment variables. This three-way distinction is explicit in both
+the `.claude/rules/` type files and the `CLAUDE.md` variants.
 
 **Keep a Changelog format.**
 All projects use [keepachangelog.com](https://keepachangelog.com/en/1.1.0/) with
@@ -113,7 +159,43 @@ needing to track down contributors if the license terms ever change.
 
 ## Usage
 
-### Starting a New Project
+### Automated Setup (Recommended)
+
+`scripts/new-project.sh` (Bash) and `scripts/New-Project.ps1` (PowerShell) automate
+everything in "Starting a New Project" below: copying the right type + language
+files, pruning the ones you didn't pick, substituting every `OWNER`/`REPO`/`APP_NAME`/
+`PROJECT_OWNER_NAME` placeholder (and the less obvious `PROJECT_OWNER_EMAIL`,
+`GOVERNING_LAW_JURISDICTION`, and `DISPUTE_RESOLUTION_JURISDICTION` ones tucked into
+`CLA.md`), generating a language-appropriate `.gitignore`, and fetching a real
+`LICENSE` - all before the first commit, closing the gaps the fully-manual flow leaves
+open (see "Starting a New Project" below for what those gaps are).
+
+```bash
+./scripts/new-project.sh --type CLI --language Go --dest ~/projects/my_tool \
+  --app-name my_tool --owner OWNER --repo my_tool
+```
+
+```powershell
+./scripts/New-Project.ps1 -Type CLI -Language Go -Dest ~/projects/my_tool `
+  -AppName my_tool -Owner OWNER -Repo my_tool
+```
+
+This stops after local scaffolding and lists the `<!-- description -->` and any
+unfilled `SCREAMING_SNAKE_CASE` placeholders left to fill in by hand (the free-text
+ones like `GOVERNING_LAW_JURISDICTION` can't be guessed - pass them as flags or edit
+them directly). Once you've filled those in, re-run the exact same command with
+`--init-repo` / `-InitRepo` to create the GitHub repo, push, and configure branch
+protection and squash-only merging - it detects the destination already exists and
+skips straight to that step rather than re-scaffolding. Add `--private`/`-Private` for
+a private repo, and `--yes`/`-Yes` to skip the confirmation prompts (useful for CI,
+but skips the safety check that warns you before pushing with placeholders still
+unfilled). See `--help` / `Get-Help ./scripts/New-Project.ps1 -Full` for every option,
+including `--project-owner-email`.
+
+### Starting a New Project (Manual)
+
+The steps below are what the scripts above do automatically - useful if you don't
+have Bash or PowerShell available, or want to understand or customize each step.
 
 ```bash
 # Clone this repository
@@ -130,21 +212,36 @@ cp -r Boilerplate/Universal/. ~/projects/my_tool/
 
 cd ~/projects/my_tool
 
-# Pick the CLAUDE.md and .clauderules variant that match your language,
-# rename them, and delete the variants you are not using.
+# Pick the CLAUDE.md variant that matches your language, rename it, and
+# delete the variants you are not using.
 # Example for a Go CLI tool (CLI also offers Python, C#, and BASH variants):
 mv CLAUDE-CLI-Go.md CLAUDE.md
-mv .clauderules-Go.md .clauderules
 rm CLAUDE-CLI-Python.md CLAUDE-CLI-CSharp.md CLAUDE-CLI-BASH.md
-rm .clauderules-Python.md .clauderules-CSharp.md .clauderules-BASH.md
+
+# Remove the language rule files you are not using. universal.md and
+# .claude/rules/cli.md (the type-specific file) always stay; only trim the
+# per-language ones. A rule file for a language you never use is inert - its
+# `paths:` glob never matches - so this step is tidiness, not correctness.
+rm .claude/rules/python.md .claude/rules/csharp.md .claude/rules/bash.md .claude/rules/php.md
 
 # Remove the remaining type suffix from the other per-type files
 mv ARCHITECTURE-CLI.md ARCHITECTURE.md
 mv README-CLI.md README.md
 
-# Search for placeholders and fill them in
+# Search for placeholders and fill them in. PROJECT_OWNER_EMAIL,
+# GOVERNING_LAW_JURISDICTION, and DISPUTE_RESOLUTION_JURISDICTION live in
+# CLA.md specifically and are easy to miss in a quick skim.
 grep -rn "<!-- " .
-grep -rn "OWNER\|REPO\|app_name\|APP_NAME\|PROJECT_OWNER" .
+grep -rn "OWNER\|REPO\|app_name\|APP_NAME\|PROJECT_OWNER_NAME\|PROJECT_OWNER_EMAIL\|GOVERNING_LAW_JURISDICTION\|DISPUTE_RESOLUTION_JURISDICTION" .
+
+# Add a LICENSE and a .gitignore before the first commit - neither is
+# included in this boilerplate (see "What These Templates Do Not Cover"),
+# and skipping this step is how build artifacts or a real .env end up
+# committed by accident.
+curl -fsSL -o LICENSE https://www.gnu.org/licenses/agpl-3.0.txt
+# Generate .gitignore at https://www.toptal.com/developers/gitignore for
+# your language, or use gitignore.io's API directly, e.g.:
+curl -fsSL -o .gitignore "https://www.toptal.com/developers/gitignore/api/go"
 ```
 
 ### Placeholder Convention
@@ -233,6 +330,54 @@ EOF
 
 ---
 
+## Combining Types in One Repository
+
+Everything above assumes one project type in one repository. A larger project - a
+game server combining a Service (the game loop / world simulation), a Web backend
+(accounts, website), and CLI tooling (admin scripts, migrations) in a single
+monorepo - needs more than one type directory at once. Claude Code supports this
+natively through two mechanisms this boilerplate is designed to use directly:
+
+**Nested `CLAUDE.md` files.** Claude Code loads the root `CLAUDE.md` at session
+start, and additionally auto-discovers a `CLAUDE.md` in a subdirectory as soon as
+Claude reads a file within it. Give each subsystem its own directory and its own
+`CLAUDE.md` copied from the matching type variant:
+
+```
+my_game/
+- server/
+  - CLAUDE.md         # from Service/CLAUDE-Service-Go.md
+- web/
+  - CLAUDE.md         # from Web/CLAUDE-Web-PHP.md
+- tools/
+  - CLAUDE.md         # from CLI/CLAUDE-CLI-BASH.md
+- CLAUDE.md           # root: brief orientation + pointers to each subsystem
+- .claude/
+  - rules/
+    - universal.md
+    - go.md
+    - php.md
+    - bash.md
+    - cli.md          # add `paths: ["tools/**"]` to scope it to that subtree
+    - web.md          # add `paths: ["web/**"]`
+    - service.md      # add `paths: ["server/**"]`
+  - settings.json
+```
+
+Keep the root `CLAUDE.md` short - project-wide orientation and a one-line pointer
+into each subsystem directory - and let the nested files carry the type- and
+stack-specific detail. Do not duplicate the subsystem detail in both places.
+
+**Path-scoped rules.** Without a `paths:` restriction, a `.claude/rules/*.md` file
+applies to the whole repository - correct for the single-type case this boilerplate
+defaults to. Add `paths:` frontmatter to scope a rule file to one subsystem, and
+multiple type and language rule files can coexist without deleting any of them - Go's
+`go.md` and PHP's `php.md` both stay in place, each firing only for files under its
+own glob. This is why the Usage section only tells you to delete *language* rule
+files you are not using at all, never to pick a single type file to keep.
+
+---
+
 ## Languages and Tooling
 
 These templates assume projects written in one or more of:
@@ -243,8 +388,8 @@ These templates assume projects written in one or more of:
 - **PHP** - `composer`, `php artisan`, `phpunit`, `pint` (web projects only)
 - **BASH** - `set -euo pipefail`, shellcheck (CLI projects only)
 
-`CLAUDE.md` and `.clauderules` are already split one file per language (see
-What Is Included), so there is nothing to trim there. `ARCHITECTURE.md` is a
+`CLAUDE.md` and the `.claude/rules/` language files are already split one file per
+language (see What Is Included), so there is nothing to trim there. `ARCHITECTURE.md` is a
 stable reference and still documents multiple stacks side by side (for example,
 Go/Python and Laravel request lifecycles in the Web variant) - remove the
 subsections that do not apply to your project.

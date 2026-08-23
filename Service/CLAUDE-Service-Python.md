@@ -1,8 +1,8 @@
 # CLAUDE.md - Service / Daemon (Python)
 
 This file provides project context and conventions for AI-assisted development sessions.
-Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
-behavioral rules that govern this session.
+Read this file and ARCHITECTURE.md before making any changes. Behavioral rules and
+guardrails are auto-loaded from `.claude/rules/` - there is nothing else to open.
 
 ---
 
@@ -36,7 +36,7 @@ project_name/
 - scripts/              # Helper, packaging, and deployment scripts
 - tests/                # Test suite
 - docs/                 # Additional documentation
-- .clauderules          # AI session behavioral rules
+- .claude/              # Auto-loaded rules (.claude/rules/) and settings.json
 - ARCHITECTURE.md       # Component and data flow reference
 - CHANGELOG.md          # Version history (Keep a Changelog format)
 - CLAUDE.md             # This file
@@ -82,9 +82,10 @@ sudo cp -r . /opt/app_name
 sudo cp init/app_name.service /etc/systemd/system/
 sudo systemctl daemon-reload
 
-# Install launchd plist (macOS)
-cp init/com.example.app_name.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.example.app_name.plist
+# Install launchd plist (macOS) - LaunchDaemon, not LaunchAgent: a daemon must
+# start at boot and run independent of any user session
+sudo cp init/com.example.app_name.plist /Library/LaunchDaemons/
+sudo launchctl load /Library/LaunchDaemons/com.example.app_name.plist
 
 # Install Windows service
 # sc create app_name binPath= "C:\path\to\python.exe C:\path\to\app_name\main.py"
@@ -98,10 +99,14 @@ launchctl load ~/Library/LaunchAgents/com.example.app_name.plist
 
 ```bash
 # Run in foreground with verbose logging (easiest for development)
-app_name --config ~/.app_name/config.yaml --verbose
+app_name --verbose
 
-# With environment variable overrides
-APP_NAME_LOG_LEVEL=debug app_name --config ~/.app_name/config.yaml
+# Point the whole root at a local dev directory instead of /opt/app_name
+# (no root access required for local development)
+APP_NAME_HOME=./devdata app_name --verbose
+
+# Or override individual paths
+APP_NAME_LOG_LEVEL=debug app_name --config ./devdata/config/config.yaml
 ```
 
 ### Production (systemd)
@@ -158,10 +163,12 @@ with failing tests. If tests cannot be run, say so explicitly.
 
 - Runtime overrides via CLI flags (always take highest precedence)
 - Environment variable overrides supported (see table below)
-- Persistent config stored at: `~/.app_name/config.yaml`
-- Runtime state and data stored under: `~/.app_name/`
-- PID file (when daemonizing): `~/.app_name/app_name.pid`
-- Never hardcode paths - resolve the home directory at runtime
+- Root directory for everything below: `/opt/app_name/` (override with `APP_NAME_HOME`)
+- Persistent config stored at: `/opt/app_name/config/config.yaml`
+- Persistent application data stored under: `/opt/app_name/data/`
+- Logs stored under: `/opt/app_name/logs/` (if not writing to stdout/journald)
+- PID file (when daemonizing): `/opt/app_name/run/app_name.pid`
+- Never hardcode paths - resolve them relative to `APP_NAME_HOME` at runtime
 - Config format preference order: YAML > JSON > TOML
 - Config is reloaded on SIGHUP without restarting the process
 
@@ -169,7 +176,8 @@ with failing tests. If tests cannot be run, say so explicitly.
 
 | Variable                  | Default         | Description                         |
 |---------------------------|-----------------|-------------------------------------|
-| `APP_NAME_CONFIG`         | `~/.app_name/config.yaml` | Path to config file       |
+| `APP_NAME_HOME`           | `/opt/app_name` | Root directory for config, data, logs, and run |
+| `APP_NAME_CONFIG`         | `$APP_NAME_HOME/config/config.yaml` | Path to config file |
 | `APP_NAME_LOG_LEVEL`      | `info`          | Log verbosity                       |
 | `APP_NAME_LOG_FORMAT`     | `text`          | Log format: text or json            |
 | <!-- APP_NAME_XXXX -->    | <!-- default --> | <!-- description -->               |
@@ -177,7 +185,7 @@ with failing tests. If tests cannot be run, say so explicitly.
 ### Config File Structure
 
 ```yaml
-# ~/.app_name/config.yaml
+# /opt/app_name/config/config.yaml
 # Document expected keys and their defaults here
 # Example:
 # log_level: info
@@ -190,28 +198,14 @@ with failing tests. If tests cannot be run, say so explicitly.
 
 ## Service Architecture Notes
 
-<!-- Describe the service's concurrency model and main loop so Claude understands -->
-<!-- how the pieces fit together before touching any service code. Example: -->
-
-<!--
-The service starts an asyncio event loop that:
-1. Loads configuration
-2. Initializes subsystems (database, cache, etc.)
-3. Starts the listener (HTTP/gRPC/Unix socket)
-4. Blocks on the signal handlers
-5. On SIGTERM/SIGINT: cancels all tasks and shuts down subsystems in reverse order
-
-Worker tasks are managed by an asyncio task group or a bounded queue.
-Each worker handles one request/job at a time.
--->
+<!-- Describe the concurrency model and main loop before touching any service code: -->
+<!-- startup sequence, subsystem init order, and shutdown sequence on SIGTERM/SIGINT. -->
 
 ### Concurrency Notes
 
 ```
 <!-- Document any specific concurrency patterns enforced in this project -->
-<!-- Example: -->
-<!-- asyncio event loop; one coroutine per request; blocking calls offloaded to thread pool -->
-<!-- asyncio.run() only at the top level; never nested -->
+<!-- (e.g. asyncio task group vs bounded queue, where blocking calls are offloaded) -->
 ```
 
 ---
@@ -242,14 +236,8 @@ init files to match. Do not leave init files out of sync with the application's 
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders for this project:
-
-- ASCII only in code and comments - no emoji, no em-dashes
-- Underscores in all filenames
-- Explain WHY in comments, not WHAT
-- Errors must be handled explicitly - no silent failures
-- No dangling asyncio tasks - every task must be awaited or explicitly tracked
-- Conventional commits: `type(scope): description`
+Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
+`universal.md` plus the language and type rule files that apply to this project.
 
 ### Language-Specific Notes
 

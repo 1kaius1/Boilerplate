@@ -1,8 +1,8 @@
 # CLAUDE.md - Service / Daemon (C# / .NET)
 
 This file provides project context and conventions for AI-assisted development sessions.
-Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
-behavioral rules that govern this session.
+Read this file and ARCHITECTURE.md before making any changes. Behavioral rules and
+guardrails are auto-loaded from `.claude/rules/` - there is nothing else to open.
 
 ---
 
@@ -40,7 +40,7 @@ project_name/
 - scripts/              # Helper, packaging, and deployment scripts
 - docs/                 # Additional documentation
 - AppName.sln           # Solution file
-- .clauderules          # AI session behavioral rules
+- .claude/              # Auto-loaded rules (.claude/rules/) and settings.json
 - ARCHITECTURE.md       # Component and data flow reference
 - CHANGELOG.md          # Version history (Keep a Changelog format)
 - CLAUDE.md             # This file
@@ -100,7 +100,11 @@ sc create app_name binPath= "C:\path\to\app_name.exe"
 # Run in foreground with verbose logging (easiest for development)
 dotnet run --project src/AppName -- --verbose
 
-# With environment variable overrides
+# Point the whole root at a local dev directory instead of /opt/app_name
+# (no root access required for local development)
+APP_NAME_HOME=./devdata dotnet run --project src/AppName -- --verbose
+
+# Or override individual paths
 APP_NAME_LOG_LEVEL=Debug dotnet run --project src/AppName
 ```
 
@@ -159,10 +163,13 @@ with failing tests. If tests cannot be run, say so explicitly.
 
 - Runtime overrides via CLI flags (always take highest precedence)
 - Environment variable overrides supported (see table below)
-- Persistent config stored at: `~/.app_name/config.yaml`
-- Runtime state and data stored under: `~/.app_name/`
-- PID file (when daemonizing): `~/.app_name/app_name.pid`
-- Never hardcode paths - resolve the home directory at runtime (`Environment.GetFolderPath`)
+- Root directory for everything below: `/opt/app_name/` (override with `APP_NAME_HOME`)
+- Persistent config stored at: `/opt/app_name/config/config.yaml`
+- Persistent application data stored under: `/opt/app_name/data/`
+- Logs stored under: `/opt/app_name/logs/` (if not writing to stdout/journald)
+- PID file (when daemonizing): `/opt/app_name/run/app_name.pid`
+- Never hardcode paths - resolve them relative to `APP_NAME_HOME` at runtime
+  (`Environment.GetEnvironmentVariable`)
 - Config format preference order: YAML > JSON > TOML
 - Config is reloaded on SIGHUP without restarting the process (`IOptionsMonitor`)
 
@@ -170,7 +177,8 @@ with failing tests. If tests cannot be run, say so explicitly.
 
 | Variable                  | Default         | Description                         |
 |---------------------------|-----------------|-------------------------------------|
-| `APP_NAME_CONFIG`         | `~/.app_name/config.yaml` | Path to config file       |
+| `APP_NAME_HOME`           | `/opt/app_name` | Root directory for config, data, logs, and run |
+| `APP_NAME_CONFIG`         | `$APP_NAME_HOME/config/config.yaml` | Path to config file |
 | `APP_NAME_LOG_LEVEL`      | `Information`   | Log verbosity                       |
 | `APP_NAME_LOG_FORMAT`     | `text`          | Log format: text or json            |
 | <!-- APP_NAME_XXXX -->    | <!-- default --> | <!-- description -->               |
@@ -178,7 +186,7 @@ with failing tests. If tests cannot be run, say so explicitly.
 ### Config File Structure
 
 ```yaml
-# ~/.app_name/config.yaml
+# /opt/app_name/config/config.yaml
 # Document expected keys and their defaults here
 # Example:
 # log_level: Information
@@ -191,27 +199,16 @@ with failing tests. If tests cannot be run, say so explicitly.
 
 ## Service Architecture Notes
 
-<!-- Describe the service's concurrency model and main loop so Claude understands -->
-<!-- how the pieces fit together before touching any service code. Example: -->
-
-<!--
-The service is built on the .NET Generic Host. Program.cs configures the host,
-registers a BackgroundService (Worker.cs) and any hosted subsystems, then calls
-host.RunAsync(). The Generic Host wires up SIGTERM/SIGINT to
-IHostApplicationLifetime, which the BackgroundService observes via the
-CancellationToken passed to ExecuteAsync.
-
-Background work is scheduled via IHostedService/BackgroundService instances or
-Channel<T>-based worker queues with a configurable degree of parallelism.
--->
+<!-- Describe the concurrency model and main loop before touching any service code: -->
+<!-- startup sequence, subsystem init order, and shutdown sequence on SIGTERM/SIGINT. -->
+<!-- Built on the .NET Generic Host - note any hosted services / BackgroundService -->
+<!-- instances and how IHostApplicationLifetime cancellation is observed. -->
 
 ### Concurrency Notes
 
 ```
 <!-- Document any specific concurrency patterns enforced in this project -->
-<!-- Example: -->
-<!-- CancellationToken propagated through all async calls for cooperative cancellation -->
-<!-- Channel<T> used for producer/consumer work queues -->
+<!-- (e.g. CancellationToken propagation, Channel<T> producer/consumer queues) -->
 ```
 
 ---
@@ -242,14 +239,8 @@ init files to match. Do not leave init files out of sync with the binary's behav
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders for this project:
-
-- ASCII only in code and comments - no emoji, no em-dashes
-- File names are PascalCase and match the class they contain (standard .NET convention)
-- Explain WHY in comments, not WHAT
-- Errors must be handled explicitly - no silent failures, no swallowed exceptions
-- No unawaited async void methods outside event handlers - every Task must be observed
-- Conventional commits: `type(scope): description`
+Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
+`universal.md` plus the language and type rule files that apply to this project.
 
 ### Language-Specific Notes
 

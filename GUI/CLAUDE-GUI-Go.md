@@ -1,8 +1,8 @@
 # CLAUDE.md - GUI Application (Go)
 
 This file provides project context and conventions for AI-assisted development sessions.
-Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
-behavioral rules that govern this session.
+Read this file and ARCHITECTURE.md before making any changes. Behavioral rules and
+guardrails are auto-loaded from `.claude/rules/` - there is nothing else to open.
 
 ---
 
@@ -40,7 +40,7 @@ project_name/
 - scripts/              # Build helpers and packaging scripts
 - tests/                # Test suite
 - docs/                 # Additional documentation
-- .clauderules          # AI session behavioral rules
+- .claude/              # Auto-loaded rules (.claude/rules/) and settings.json
 - ARCHITECTURE.md       # Component and data flow reference
 - CHANGELOG.md          # Version history (Keep a Changelog format)
 - CLAUDE.md             # This file
@@ -60,12 +60,8 @@ project_name/
 
 ```bash
 # Go 1.22+
-# Example (GTK4 on Linux):
-# GTK4 development libraries: sudo apt install libgtk-4-dev
-# gobject-introspection: sudo apt install libgirepository1.0-dev
-
-# Example (Qt6 on Linux):
-# Qt6 development libraries: sudo apt install qt6-base-dev
+# Plus whatever system dev libraries the chosen toolkit needs (e.g. GTK4:
+# libgtk-4-dev + libgirepository1.0-dev; Qt6: qt6-base-dev)
 ```
 
 ### Build
@@ -161,17 +157,8 @@ The main window struct is in internal/ui/window.go.
 ### Toolkit-Specific Notes
 
 ```
-<!-- Document any toolkit-specific conventions enforced in this project -->
-<!-- Example (GTK4): -->
-<!-- - Use GtkBuilder XML for all layout; no programmatic widget construction -->
-<!-- - Signals connected in code, not in .ui files -->
-<!-- - CSS overrides in assets/style.css only -->
-<!-- - Never use deprecated GTK3 widgets -->
-
-<!-- Example (Qt6): -->
-<!-- - .ui files edited in Qt Designer only, not by hand -->
-<!-- - Signals/slots in code using connect() -->
-<!-- - QSS overrides in assets/style.qss only -->
+<!-- Document the conventions enforced for the toolkit actually chosen above -->
+<!-- (GtkBuilder/QML layout rules, signal wiring, stylesheet location, etc.) -->
 ```
 
 ### Cross-Platform UI Notes
@@ -203,13 +190,8 @@ resources/              # Compiled resource bundle (do not edit directly)
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders for this project:
-
-- ASCII only in code and comments - no emoji, no em-dashes
-- Underscores in all filenames
-- Explain WHY in comments, not WHAT
-- Errors must be handled explicitly - no silent failures
-- Conventional commits: `type(scope): description`
+Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
+`universal.md` plus the language and type rule files that apply to this project.
 
 ### Language-Specific Notes
 

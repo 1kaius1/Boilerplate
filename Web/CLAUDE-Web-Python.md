@@ -1,8 +1,8 @@
 # CLAUDE.md - Web Application (Python)
 
 This file provides project context and conventions for AI-assisted development sessions.
-Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
-behavioral rules that govern this session.
+Read this file and ARCHITECTURE.md before making any changes. Behavioral rules and
+guardrails are auto-loaded from `.claude/rules/` - there is nothing else to open.
 
 ---
 
@@ -51,7 +51,7 @@ project_name/
 - scripts/              # Helper, build, and deployment scripts
 - tests/                # Test suite
 - .env.example          # Example environment variables (never .env itself)
-- .clauderules
+- .claude/              # Auto-loaded rules (.claude/rules/) and settings.json
 - ARCHITECTURE.md
 - CHANGELOG.md
 - CLAUDE.md
@@ -206,12 +206,8 @@ web/src/
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders:
-
-- ASCII only in code and comments - no emoji, no em-dashes
-- Explain WHY in comments, not WHAT
-- Errors handled explicitly - no silent failures
-- Conventional commits: `type(scope): description`
+Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
+`universal.md` plus the language and type rule files that apply to this project.
 
 ### Language-Specific Notes
 

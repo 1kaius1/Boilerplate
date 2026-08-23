@@ -159,7 +159,7 @@ over alternatives. This section should make it easy to audit the dependency surf
 ### Dependency Philosophy
 
 - Prefer standard library solutions over third-party packages
-- New dependencies require discussion and explicit approval (see .clauderules)
+- New dependencies require discussion and explicit approval (see `.claude/rules/`)
 - Each dependency must justify its maintenance burden
 
 ---

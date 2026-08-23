@@ -1,8 +1,8 @@
 # CLAUDE.md - CLI Application (BASH)
 
 This file provides project context and conventions for AI-assisted development sessions.
-Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
-behavioral rules that govern this session.
+Read this file and ARCHITECTURE.md before making any changes. Behavioral rules and
+guardrails are auto-loaded from `.claude/rules/` - there is nothing else to open.
 
 ---
 
@@ -35,7 +35,7 @@ project_name/
 - scripts/              # Helper and maintenance scripts
 - tests/                # Test suite
 - docs/                 # Additional documentation
-- .clauderules          # AI session behavioral rules
+- .claude/              # Auto-loaded rules (.claude/rules/) and settings.json
 - ARCHITECTURE.md       # Component and data flow reference
 - CHANGELOG.md          # Version history (Keep a Changelog format)
 - CLAUDE.md             # This file
@@ -135,14 +135,8 @@ with failing tests. If tests cannot be run, say so explicitly.
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders for this project:
-
-- ASCII only in code and comments - no emoji, no em-dashes
-- Underscores in all filenames
-- Explain WHY in comments, not WHAT
-- Errors must be handled explicitly - no silent failures
-- stderr for errors, stdout for data output
-- Conventional commits: `type(scope): description`
+Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
+`universal.md` plus the language and type rule files that apply to this project.
 
 ### Language-Specific Notes
 

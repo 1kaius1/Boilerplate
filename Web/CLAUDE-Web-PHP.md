@@ -1,8 +1,8 @@
 # CLAUDE.md - Web Application (PHP / Laravel)
 
 This file provides project context and conventions for AI-assisted development sessions.
-Read this file and ARCHITECTURE.md before making any changes. See .clauderules for
-behavioral rules that govern this session.
+Read this file and ARCHITECTURE.md before making any changes. Behavioral rules and
+guardrails are auto-loaded from `.claude/rules/` - there is nothing else to open.
 
 ---
 
@@ -73,7 +73,7 @@ project_name/
   - Feature/            # Feature/integration tests
   - Unit/               # Unit tests
 - .env.example          # Example environment variables (never .env itself)
-- .clauderules
+- .claude/              # Auto-loaded rules (.claude/rules/) and settings.json
 - ARCHITECTURE.md
 - CHANGELOG.md
 - CLAUDE.md
@@ -157,12 +157,10 @@ php artisan schedule:work
 # Open a REPL (Tinker)
 php artisan tinker
 
-# Generate a new controller / model / migration / etc.
-php artisan make:controller ExampleController
+# Generate a new controller / model / migration / etc. - see `php artisan list`
+# under "make:" for the full set
 php artisan make:model Example --migration
 php artisan make:request StoreExampleRequest
-php artisan make:resource ExampleResource
-php artisan make:service ExampleService   # requires a custom stub or manual creation
 ```
 
 ---
@@ -275,30 +273,18 @@ production seeders.**
 
 ---
 
-## Laravel Usage Modes
+## Laravel Usage Mode
 
-### API Backend Only
+<!-- Pick the one mode this project actually uses and delete this comment - do not -->
+<!-- leave all three documented as if the project runs them simultaneously. -->
 
-- Routes defined in `routes/api.php` only
-- All responses via API Resources (`app/Http/Resources/`)
-- Auth via Laravel Sanctum (token-based) or Passport (OAuth2)
-- No Blade templates; `resources/views/` unused
-- CORS configured via `config/cors.php`
+| Mode | Routes | Auth | Frontend |
+|------|--------|------|----------|
+| API backend only | `routes/api.php` only | Sanctum (token) or Passport (OAuth2) | None - `resources/views/` unused, CORS via `config/cors.php` |
+| Full-stack Blade | `routes/web.php` + `routes/api.php` | Session-based (Sanctum SPA or Breeze/Jetstream) | Blade views in `resources/views/`, Vite-compiled assets |
+| Inertia.js (Vue/React) | `routes/web.php` returns Inertia responses | Sanctum SPA cookie auth | Components in `resources/js/Pages/`, shared data via `HandleInertiaRequests` |
 
-### Full-Stack with Blade
-
-- Web routes in `routes/web.php`; API routes in `routes/api.php`
-- Views in `resources/views/` as `.blade.php` files
-- Auth via Laravel's session-based auth (Sanctum with SPA or Breeze/Jetstream scaffold)
-- Vite compiles `resources/css/` and `resources/js/` into `public/build/`
-
-### Inertia.js (Vue / React)
-
-- Web routes in `routes/web.php` return Inertia responses
-- Frontend components in `resources/js/Pages/`
-- Shared data passed via Inertia's `share()` in `HandleInertiaRequests` middleware
-- Auth via Laravel Sanctum with SPA cookie authentication
-- Vite compiles the frontend; no separate dev server routing needed
+<!-- This project uses: <!-- API backend only / Full-stack Blade / Inertia.js --> -->
 
 ---
 
@@ -319,22 +305,9 @@ resources/js/
 
 ## Code Style and Conventions
 
-Behavioral rules are in `.clauderules`. Key reminders:
-
-- ASCII only in code and comments - no emoji, no em-dashes
-- Explain WHY in comments, not WHAT
-- Errors handled explicitly - no silent failures
-- Conventional commits: `type(scope): description`
-
-### PHP / Laravel Specific
-
-- PSR-12 coding standard enforced via Laravel Pint: `./vendor/bin/pint`
-- Type hints required on all method signatures (PHP 8.x named arguments encouraged)
-- Controllers are thin - delegate immediately to a Service class
-- No business logic in Models, Controllers, or Middleware
-- No direct Eloquent queries outside of Repository classes
-- Validation always in Form Request classes (`app/Http/Requests/`) - never in controllers
-- Never use `dd()`, `dump()`, `var_dump()`, or `ray()` in committed code
+Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
+`universal.md` plus `php.md`, which includes the Laravel-specific rules for this
+project.
 
 ---
 
