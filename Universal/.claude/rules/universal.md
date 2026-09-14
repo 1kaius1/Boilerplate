@@ -52,6 +52,13 @@ Claude Code loads this automatically - there is nothing to reference or open man
 - All changes go through a feature branch and pull request
 - Branch naming: `type/short-description` (e.g. `feat/add-login`, `fix/null-pointer`)
 - One logical change per branch, one logical change per commit
+- A branch is not required to land as a single commit - commit at natural logical
+  boundaries as work actually unfolds, even if that means several commits for one
+  planned unit of work. Do not force everything from branch-start to completion into
+  one commit just because it was all planned together upfront. This is exactly what
+  squash-merge is for: the branch's commit count and shape do not matter once merged,
+  so there is no reason to compress real, distinct steps into one commit to keep the
+  count down.
 - Never amend or force-push commits that have been shared
 - PRs must target `master`; all tests must pass before a PR is suggested
 - NEVER merge a pull request without the user's explicit instruction to do so -
