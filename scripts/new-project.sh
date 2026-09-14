@@ -13,22 +13,25 @@ BOILERPLATE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: new-project.sh --type <CLI|GUI|Web|Service|Godot> \
+Usage: new-project.sh --type <CLI|GUI|Web|Service|Godot|Ansible> \
        --language <Go|Python|CSharp|BASH|PHP|GDScript> \
        --dest <path> --app-name <snake_case_name> --owner <github_owner> --repo <repo_name> \
        [--project-owner-name "<Display Name>"] [--project-owner-email <email>] \
        [--governing-law <jurisdiction>] [--dispute-jurisdiction <jurisdiction>] \
        [--init-repo] [--private] [--yes]
 
-  --type                   Project type directory to copy (CLI, GUI, Web, Service, Godot)
+  --type                   Project type directory to copy (CLI, GUI, Web, Service, Godot, Ansible)
   --language               Language variant to keep (Go, Python, CSharp, BASH, PHP, GDScript)
                            Valid per type: CLI=Go,Python,CSharp,BASH  GUI=Go,Python,CSharp
                                            Web=Go,Python,CSharp,PHP   Service=Go,Python,CSharp
-                                           Godot=GDScript,CSharp
+                                           Godot=GDScript,CSharp     Ansible=Python
                            Godot's rule files live under Godot/.claude/rules/ rather than
                            Universal/.claude/rules/, since GDScript is Godot-only and its
                            C# rules (godot_csharp.md) are additive to, not a replacement
                            for, the generic csharp.md - both stay for a Godot+CSharp project.
+                           Ansible has one valid language (Python, for any custom
+                           modules/filters) and uses the generic Universal/python.md
+                           directly - no Ansible-specific language file needed.
   --dest                   Target directory. First run: must not exist yet, gets scaffolded.
                            Re-run with --init-repo pointed at the same --dest to skip
                            scaffolding and just push/configure GitHub once you've filled
@@ -102,7 +105,8 @@ case "$(echo "$TYPE" | tr '[:upper:]' '[:lower:]')" in
   web) TYPE="Web" ;;
   service) TYPE="Service" ;;
   godot) TYPE="Godot" ;;
-  *) echo "Error: --type must be one of CLI, GUI, Web, Service, Godot" >&2; exit 1 ;;
+  ansible) TYPE="Ansible" ;;
+  *) echo "Error: --type must be one of CLI, GUI, Web, Service, Godot, Ansible" >&2; exit 1 ;;
 esac
 
 case "$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')" in
@@ -121,6 +125,7 @@ case "$TYPE:$LANGUAGE" in
   Web:Go|Web:Python|Web:CSharp|Web:PHP) ;;
   Service:Go|Service:Python|Service:CSharp) ;;
   Godot:GDScript|Godot:CSharp) ;;
+  Ansible:Python) ;;
   *) echo "Error: $LANGUAGE is not a valid language for type $TYPE (see --help)" >&2; exit 1 ;;
 esac
 
@@ -283,6 +288,23 @@ write_gitignore() {
       echo "# default; remove this line if this project keeps it secret-free"
       echo "# and wants export config under version control"
       echo "export_presets.cfg"
+      echo ""
+    fi
+    if [ "$TYPE" = "Ansible" ]; then
+      echo "# Ansible: repo-local collections cache (see bootstrap.sh)"
+      echo ".ansible/"
+      echo ""
+      echo "# ansible.cfg often carries a vault_identity_list naming a real"
+      echo "# credential label - gitignored by default, with a committed"
+      echo "# ansible.cfg.example in its place. Remove this line if this"
+      echo "# project's config is genuinely secret-free."
+      echo "ansible.cfg"
+      echo ""
+      echo "# Real, site-specific vault/inventory files - only their .example"
+      echo "# companions are committed. Bare patterns match at every directory"
+      echo "# depth; adjust if this project names these files differently."
+      echo "vault.yaml"
+      echo "hosts.ini"
       echo ""
     fi
   } > .gitignore

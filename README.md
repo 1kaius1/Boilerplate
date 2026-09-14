@@ -63,6 +63,7 @@ variant **per supported language**, and one type-specific rules file under `.cla
 | `Web/` | Web applications (backend API + frontend) | Go, Python, C#, PHP (Laravel) |
 | `Service/` | Long-running background services and daemons | Go, Python, C# |
 | `Godot/` | Godot game projects | GDScript, C# (Godot's ".NET"/"Mono" build) |
+| `Ansible/` | Ansible automation (playbooks, roles, infrastructure) | Python (for any custom modules/filters/plugins) |
 
 Only copy the one `CLAUDE-<Type>-<Language>.md` that matches your stack; the Usage
 section below covers this. The language rule files under `.claude/rules/` do not need
@@ -184,6 +185,25 @@ first place (`res://`/`user://` virtual paths are). `Godot/.claude/rules/
 godot_csharp.md` holds only that delta, and both files stay loaded together for a
 Godot+C# project - see "What Is Included" above for why the file lives in `Godot/`
 rather than `Universal/`.
+
+**Ansible is its own project type, modeling one self-contained project, not a
+mono-repo of many.** An Ansible playbook repo (playbooks, roles, inventory,
+`group_vars`/`host_vars`, Vault-encrypted secrets) has nothing in common with
+`CLI`/`GUI`/`Web`/`Service`'s assumptions, the same reasoning that put Godot in its
+own type. It deliberately does *not* bake in a "shared foundation many sibling
+projects depend on" pattern - that is a mono-repo-of-many-deployments shape some
+real Ansible repos use, but it is not universal, and asserting it as the default
+would be exactly the "generic template" problem this boilerplate exists to avoid.
+A project that does want that shape can still build it; the template just does not
+assume it.
+
+**`docs/ANSIBLE_VAULT_GUIDE.md` is real, field-tested content, generalized, not
+written from scratch.** The full walkthrough - setup, day-to-day use, password
+rotation, multi-identity strategies, and a troubleshooting table - was carried over
+from a real Ansible project's own guide (refined through actual incidents, not
+hypothetical ones) and then stripped of every project-specific name, path, and
+architectural assumption. What stayed is the tested part: the exact commands, and
+the expected-output/failure-output pairs for each one.
 
 **Keep a Changelog format.**
 All projects use [keepachangelog.com](https://keepachangelog.com/en/1.1.0/) with
@@ -433,6 +453,9 @@ These templates assume projects written in one or more of:
 - **C# / .NET on Godot** - same `dotnet`/NuGet tooling as generic C#, plus the Godot
   editor and matching export templates; Godot 4.x calls this build ".NET" (Godot 3.x
   called the same thing "Mono") (Godot projects only)
+- **Ansible** - `ansible-playbook`, `ansible-vault`, `ansible-lint`, Molecule (if
+  adopted); Python is the control-node language for any custom modules/filters, via
+  a repo-local virtualenv rather than the system Python (Ansible projects only)
 
 `CLAUDE.md` and the `.claude/rules/` language files are already split one file per
 language (see What Is Included), so there is nothing to trim there. `ARCHITECTURE.md` is a

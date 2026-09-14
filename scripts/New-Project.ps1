@@ -24,7 +24,7 @@
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('CLI', 'GUI', 'Web', 'Service', 'Godot', IgnoreCase = $true)]
+    [Parameter(Mandatory = $true)][ValidateSet('CLI', 'GUI', 'Web', 'Service', 'Godot', 'Ansible', IgnoreCase = $true)]
     [string]$Type,
 
     [Parameter(Mandatory = $true)][ValidateSet('Go', 'Python', 'CSharp', 'BASH', 'PHP', 'GDScript', IgnoreCase = $true)]
@@ -55,6 +55,7 @@ switch ($Type.ToLower()) {
     'web'     { $Type = 'Web' }
     'service' { $Type = 'Service' }
     'godot'   { $Type = 'Godot' }
+    'ansible' { $Type = 'Ansible' }
 }
 switch ($Language.ToLower()) {
     'go'       { $Language = 'Go' }
@@ -76,6 +77,7 @@ $validCombos = @{
     'Web'     = @('Go', 'Python', 'CSharp', 'PHP')
     'Service' = @('Go', 'Python', 'CSharp')
     'Godot'   = @('GDScript', 'CSharp')
+    'Ansible' = @('Python')
 }
 if ($validCombos[$Type] -notcontains $Language) {
     Write-Error "$Language is not a valid language for type $Type. Valid: $($validCombos[$Type] -join ', ')"
@@ -142,6 +144,25 @@ function Write-Gitignore {
             '# default; remove this line if this project keeps it secret-free'
             '# and wants export config under version control'
             'export_presets.cfg'
+            ''
+        )
+    }
+    if ($Type -eq 'Ansible') {
+        $lines += @(
+            '# Ansible: repo-local collections cache (see bootstrap.sh)'
+            '.ansible/'
+            ''
+            '# ansible.cfg often carries a vault_identity_list naming a real'
+            '# credential label - gitignored by default, with a committed'
+            '# ansible.cfg.example in its place. Remove this line if this'
+            "# project's config is genuinely secret-free."
+            'ansible.cfg'
+            ''
+            '# Real, site-specific vault/inventory files - only their .example'
+            '# companions are committed. Bare patterns match at every directory'
+            '# depth; adjust if this project names these files differently.'
+            'vault.yaml'
+            'hosts.ini'
             ''
         )
     }
