@@ -54,6 +54,10 @@ Claude Code loads this automatically - there is nothing to reference or open man
 - One logical change per branch, one logical change per commit
 - Never amend or force-push commits that have been shared
 - PRs must target `master`; all tests must pass before a PR is suggested
+- NEVER merge a pull request without the user's explicit instruction to do so -
+  opening a PR, or the user reviewing it, does not imply authorization to merge it.
+  Merging is a manual, final-review step the user performs via the web interface,
+  not something to do autonomously or as an assumed next step.
 - CHANGELOG.md must be updated in the same branch/commit as the change
 - Never include AI-attribution text of any kind - no "Generated with [tool]," no
   "Co-Authored-By: [AI name]," no robot emoji signatures, no equivalent - in commit
