@@ -64,6 +64,7 @@ variant **per supported language**, and one type-specific rules file under `.cla
 | `Service/` | Long-running background services and daemons | Go, Python, C# |
 | `Godot/` | Godot game projects | GDScript, C# (Godot's ".NET"/"Mono" build) |
 | `Ansible/` | Ansible automation (playbooks, roles, infrastructure) | Python (for any custom modules/filters/plugins) |
+| `WoW-AddOn/` | World of Warcraft addons | Lua |
 
 Only copy the one `CLAUDE-<Type>-<Language>.md` that matches your stack; the Usage
 section below covers this. The language rule files under `.claude/rules/` do not need
@@ -73,18 +74,20 @@ leaving it in place. That matters for the monorepo case covered below. The `php.
 rules file is fully self-contained - Laravel-specific rules are included directly in
 it, and there is no separate addendum file to append.
 
-**`Godot/` is the one exception to "language rule files live under
-`Universal/.claude/rules/`."** Its language files (`gdscript.md`,
-`godot_csharp.md`) live inside `Godot/.claude/rules/` instead, for two
-reasons: GDScript is Godot-only, so it has no reason to be a `Universal/`
-file used by other types; and `godot_csharp.md` is deliberately an *addendum*
-to the generic `Universal/.claude/rules/csharp.md`, not a replacement for
-it - a Godot+C# project keeps both, since ordinary C# conventions (naming,
-`.csproj` dependency tracking, the SPDX header syntax) still apply to a
-script attached to a node. Naming it anything ending in `csharp.md` would
-also collide at the same destination path when `Universal/` is copied in
-after the type directory (whichever copy runs last would silently overwrite
-the other) - `godot_csharp.md` avoids that collision by construction.
+**`Godot/` and `WoW-AddOn/` are the exceptions to "language rule files live
+under `Universal/.claude/rules/`."** Godot's language files (`gdscript.md`,
+`godot_csharp.md`) and WoW-AddOn's (`lua.md`) live inside their own type
+directory's `.claude/rules/` instead, for the same reason each time: GDScript
+and Lua are each used by exactly one type here, so there's no reason for
+either to be a `Universal/` file other types would ever pick. `godot_csharp.md`
+has a second reason too - it's deliberately an *addendum* to the generic
+`Universal/.claude/rules/csharp.md`, not a replacement for it - a Godot+C#
+project keeps both, since ordinary C# conventions (naming, `.csproj`
+dependency tracking, the SPDX header syntax) still apply to a script attached
+to a node. Naming it anything ending in `csharp.md` would also collide at the
+same destination path when `Universal/` is copied in after the type directory
+(whichever copy runs last would silently overwrite the other) -
+`godot_csharp.md` avoids that collision by construction.
 
 ### How Claude Code Rules Actually Load
 
@@ -204,6 +207,30 @@ from a real Ansible project's own guide (refined through actual incidents, not
 hypothetical ones) and then stripped of every project-specific name, path, and
 architectural assumption. What stayed is the tested part: the exact commands, and
 the expected-output/failure-output pairs for each one.
+
+**`WoW-AddOn/` is its own type, the same reasoning as Godot and Ansible.** A World
+of Warcraft addon has its own TOC-driven load model, its own event-driven lifecycle
+(`ADDON_LOADED`, `PLAYER_LOGIN`, SavedVariables serialized by the client on
+logout), and its own language (Lua) that no other type here uses - the same
+structural mismatch with `CLI`/`GUI`/`Web`/`Service` that put Godot and Ansible in
+their own types.
+
+**`WoW-AddOn/` defaults to no license / all rights reserved, not this
+boilerplate's usual AGPLv3/Commercial.** A deliberate per-type exception, not an
+oversight - AGPLv3/Commercial dual licensing was chosen for projects intended for
+distribution under those terms, and an addon with no license decided yet doesn't fit
+that default any better than it would fit MIT or GPL. The template leaves the
+license section as an explicit placeholder instead of asserting a license nobody
+has chosen.
+
+**`WoW-AddOn/` assumes no framework by default - hand-roll first.** A plain Lua
+table as the addon's namespace, a manually created event frame, and direct
+SavedVariables access cover most of what an addon needs. An external library (Ace3
+or any other) is added only when a specific function would be a significant
+undertaking to implement well locally - not just extra code - and an existing
+library already solves it; that's a case-by-case decision requiring discussion, per
+the same dependency-approval rule every type here already has, not a dependency
+every new addon starts with.
 
 **Keep a Changelog format.**
 All projects use [keepachangelog.com](https://keepachangelog.com/en/1.1.0/) with
@@ -456,6 +483,9 @@ These templates assume projects written in one or more of:
 - **Ansible** - `ansible-playbook`, `ansible-vault`, `ansible-lint`, Molecule (if
   adopted); Python is the control-node language for any custom modules/filters, via
   a repo-local virtualenv rather than the system Python (Ansible projects only)
+- **Lua** - the WoW client's embedded Lua 5.1 interpreter, no external toolchain;
+  `luacheck` for static analysis against a WoW API globals whitelist. No framework
+  assumed by default - see Design Decisions (WoW-AddOn projects only)
 
 `CLAUDE.md` and the `.claude/rules/` language files are already split one file per
 language (see What Is Included), so there is nothing to trim there. `ARCHITECTURE.md` is a

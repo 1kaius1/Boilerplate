@@ -24,10 +24,10 @@
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('CLI', 'GUI', 'Web', 'Service', 'Godot', 'Ansible', IgnoreCase = $true)]
+    [Parameter(Mandatory = $true)][ValidateSet('CLI', 'GUI', 'Web', 'Service', 'Godot', 'Ansible', 'WoW-AddOn', IgnoreCase = $true)]
     [string]$Type,
 
-    [Parameter(Mandatory = $true)][ValidateSet('Go', 'Python', 'CSharp', 'BASH', 'PHP', 'GDScript', IgnoreCase = $true)]
+    [Parameter(Mandatory = $true)][ValidateSet('Go', 'Python', 'CSharp', 'BASH', 'PHP', 'GDScript', 'Lua', IgnoreCase = $true)]
     [string]$Language,
 
     [Parameter(Mandatory = $true)][string]$Dest,
@@ -56,6 +56,7 @@ switch ($Type.ToLower()) {
     'service' { $Type = 'Service' }
     'godot'   { $Type = 'Godot' }
     'ansible' { $Type = 'Ansible' }
+    'wow-addon' { $Type = 'WoW-AddOn' }
 }
 switch ($Language.ToLower()) {
     'go'       { $Language = 'Go' }
@@ -64,6 +65,7 @@ switch ($Language.ToLower()) {
     'bash'     { $Language = 'BASH' }
     'php'      { $Language = 'PHP' }
     'gdscript' { $Language = 'GDScript' }
+    'lua'      { $Language = 'Lua' }
 }
 
 # --- Validate type/language combination ---
@@ -78,6 +80,7 @@ $validCombos = @{
     'Service' = @('Go', 'Python', 'CSharp')
     'Godot'   = @('GDScript', 'CSharp')
     'Ansible' = @('Python')
+    'WoW-AddOn' = @('Lua')
 }
 if ($validCombos[$Type] -notcontains $Language) {
     Write-Error "$Language is not a valid language for type $Type. Valid: $($validCombos[$Type] -join ', ')"
@@ -163,6 +166,14 @@ function Write-Gitignore {
             '# depth; adjust if this project names these files differently.'
             'vault.yaml'
             'hosts.ini'
+            ''
+        )
+    }
+    if ($Type -eq 'WoW-AddOn') {
+        $lines += @(
+            "# Don't commit a built package zip, regardless of which packager"
+            '# (if any) this project eventually adopts'
+            '*.zip'
             ''
         )
     }
@@ -266,6 +277,13 @@ function Invoke-Scaffold {
                     Remove-Item ".claude/rules/$lang.md" -ErrorAction SilentlyContinue
                 }
             }
+        } elseif ($Type -eq 'WoW-AddOn') {
+            # Lua lives under WoW-AddOn/.claude/rules/lua.md, not Universal/ - no
+            # other type here uses Lua, so none of Universal's five language
+            # files apply.
+            foreach ($lang in @('go', 'python', 'csharp', 'bash', 'php')) {
+                Remove-Item ".claude/rules/$lang.md" -ErrorAction SilentlyContinue
+            }
         } else {
             $keepLang = $Language.ToLower()
             foreach ($lang in @('go', 'python', 'csharp', 'bash', 'php')) {
@@ -302,7 +320,13 @@ function Invoke-Scaffold {
         }
 
         Write-Gitignore
-        Get-License
+        if ($Type -eq 'WoW-AddOn') {
+            Write-Host 'Skipping LICENSE fetch - WoW-AddOn defaults to no license / all rights'
+            Write-Host "reserved, not this boilerplate's usual AGPLv3/Commercial default (see"
+            Write-Host "README-WoW-AddOn.md's License section)."
+        } else {
+            Get-License
+        }
 
         Write-Host ''
         Write-Host 'Local scaffolding complete.'

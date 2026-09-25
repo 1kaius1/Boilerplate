@@ -13,18 +13,20 @@ BOILERPLATE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: new-project.sh --type <CLI|GUI|Web|Service|Godot|Ansible> \
-       --language <Go|Python|CSharp|BASH|PHP|GDScript> \
+Usage: new-project.sh --type <CLI|GUI|Web|Service|Godot|Ansible|WoW-AddOn> \
+       --language <Go|Python|CSharp|BASH|PHP|GDScript|Lua> \
        --dest <path> --app-name <snake_case_name> --owner <github_owner> --repo <repo_name> \
        [--project-owner-name "<Display Name>"] [--project-owner-email <email>] \
        [--governing-law <jurisdiction>] [--dispute-jurisdiction <jurisdiction>] \
        [--init-repo] [--private] [--yes]
 
-  --type                   Project type directory to copy (CLI, GUI, Web, Service, Godot, Ansible)
-  --language               Language variant to keep (Go, Python, CSharp, BASH, PHP, GDScript)
+  --type                   Project type directory to copy (CLI, GUI, Web, Service, Godot,
+                           Ansible, WoW-AddOn)
+  --language               Language variant to keep (Go, Python, CSharp, BASH, PHP, GDScript, Lua)
                            Valid per type: CLI=Go,Python,CSharp,BASH  GUI=Go,Python,CSharp
                                            Web=Go,Python,CSharp,PHP   Service=Go,Python,CSharp
                                            Godot=GDScript,CSharp     Ansible=Python
+                                           WoW-AddOn=Lua
                            Godot's rule files live under Godot/.claude/rules/ rather than
                            Universal/.claude/rules/, since GDScript is Godot-only and its
                            C# rules (godot_csharp.md) are additive to, not a replacement
@@ -32,6 +34,10 @@ Usage: new-project.sh --type <CLI|GUI|Web|Service|Godot|Ansible> \
                            Ansible has one valid language (Python, for any custom
                            modules/filters) and uses the generic Universal/python.md
                            directly - no Ansible-specific language file needed.
+                           WoW-AddOn's Lua rules live under WoW-AddOn/.claude/rules/ (like
+                           Godot's GDScript) since no other type uses Lua. WoW-AddOn also
+                           skips the LICENSE fetch - it defaults to no license / all rights
+                           reserved rather than this boilerplate's usual AGPLv3/Commercial.
   --dest                   Target directory. First run: must not exist yet, gets scaffolded.
                            Re-run with --init-repo pointed at the same --dest to skip
                            scaffolding and just push/configure GitHub once you've filled
@@ -106,7 +112,8 @@ case "$(echo "$TYPE" | tr '[:upper:]' '[:lower:]')" in
   service) TYPE="Service" ;;
   godot) TYPE="Godot" ;;
   ansible) TYPE="Ansible" ;;
-  *) echo "Error: --type must be one of CLI, GUI, Web, Service, Godot, Ansible" >&2; exit 1 ;;
+  wow-addon) TYPE="WoW-AddOn" ;;
+  *) echo "Error: --type must be one of CLI, GUI, Web, Service, Godot, Ansible, WoW-AddOn" >&2; exit 1 ;;
 esac
 
 case "$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')" in
@@ -116,7 +123,8 @@ case "$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')" in
   bash) LANGUAGE="BASH" ;;
   php) LANGUAGE="PHP" ;;
   gdscript) LANGUAGE="GDScript" ;;
-  *) echo "Error: --language must be one of Go, Python, CSharp, BASH, PHP, GDScript" >&2; exit 1 ;;
+  lua) LANGUAGE="Lua" ;;
+  *) echo "Error: --language must be one of Go, Python, CSharp, BASH, PHP, GDScript, Lua" >&2; exit 1 ;;
 esac
 
 case "$TYPE:$LANGUAGE" in
@@ -126,6 +134,7 @@ case "$TYPE:$LANGUAGE" in
   Service:Go|Service:Python|Service:CSharp) ;;
   Godot:GDScript|Godot:CSharp) ;;
   Ansible:Python) ;;
+  WoW-AddOn:Lua) ;;
   *) echo "Error: $LANGUAGE is not a valid language for type $TYPE (see --help)" >&2; exit 1 ;;
 esac
 
@@ -167,6 +176,11 @@ scaffold() {
       rm -f ".claude/rules/go.md" ".claude/rules/python.md" ".claude/rules/bash.md" \
             ".claude/rules/php.md"
     fi
+  elif [ "$TYPE" = "WoW-AddOn" ]; then
+    # Lua lives under WoW-AddOn/.claude/rules/lua.md, not Universal/ - no other
+    # type here uses Lua, so none of Universal's five language files apply.
+    rm -f ".claude/rules/go.md" ".claude/rules/python.md" ".claude/rules/csharp.md" \
+          ".claude/rules/bash.md" ".claude/rules/php.md"
   else
     KEEP_LANG="$(echo "$LANGUAGE" | tr '[:upper:]' '[:lower:]')"
     for lang in go python csharp bash php; do
@@ -206,7 +220,13 @@ scaffold() {
     done
 
   write_gitignore
-  fetch_license
+  if [ "$TYPE" = "WoW-AddOn" ]; then
+    echo "Skipping LICENSE fetch - WoW-AddOn defaults to no license / all rights"
+    echo "reserved, not this boilerplate's usual AGPLv3/Commercial default (see"
+    echo "README-WoW-AddOn.md's License section)."
+  else
+    fetch_license
+  fi
 
   echo ""
   echo "Local scaffolding complete."
@@ -273,6 +293,8 @@ write_gitignore() {
         echo "" ;;
       GDScript)
         : ;;
+      Lua)
+        : ;;
     esac
     if [ "$TYPE" = "Web" ]; then
       echo "# Web: never commit real environment values"
@@ -305,6 +327,12 @@ write_gitignore() {
       echo "# depth; adjust if this project names these files differently."
       echo "vault.yaml"
       echo "hosts.ini"
+      echo ""
+    fi
+    if [ "$TYPE" = "WoW-AddOn" ]; then
+      echo "# Don't commit a built package zip, regardless of which packager"
+      echo "# (if any) this project eventually adopts"
+      echo "*.zip"
       echo ""
     fi
   } > .gitignore
