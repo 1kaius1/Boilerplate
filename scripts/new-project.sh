@@ -38,7 +38,8 @@ Usage: new-project.sh --type <CLI|GUI|Web|Service|Godot|Ansible|WoW-AddOn> \
                            Godot's GDScript) since no other type uses Lua. WoW-AddOn also
                            skips the LICENSE fetch - it defaults to no license / all rights
                            reserved rather than this boilerplate's usual AGPLv3/Commercial.
-  --dest                   Target directory. First run: must not exist yet, gets scaffolded.
+  --dest                   Target directory. First run: must not exist yet, or be empty
+                           (a pre-existing .git/ is fine), and gets scaffolded.
                            Re-run with --init-repo pointed at the same --dest to skip
                            scaffolding and just push/configure GitHub once you've filled
                            in the remaining placeholders.
@@ -146,8 +147,14 @@ sed_escape() { printf '%s' "$1" | sed -e 's/[&/\]/\\&/g'; }
 
 scaffold() {
   echo "Scaffolding $TYPE/$LANGUAGE project at $DEST"
-  mkdir -p "$(dirname "$DEST")"
-  cp -r "$BOILERPLATE_ROOT/$TYPE/" "$DEST/"
+  # mkdir -p is a no-op if $DEST already exists (e.g. a directory that was
+  # pre-created and git-init'd before scaffolding). Both copies use the
+  # trailing "/." content-copy form deliberately - without it, cp -r would
+  # nest the whole source directory one level deep (DEST/WoW-AddOn/... instead
+  # of DEST/...) whenever DEST already exists, since cp -r only copies a
+  # directory itself into an *existing* target directory.
+  mkdir -p "$DEST"
+  cp -r "$BOILERPLATE_ROOT/$TYPE/." "$DEST/"
   cp -r "$BOILERPLATE_ROOT/Universal/." "$DEST/"
 
   cd "$DEST"
@@ -452,18 +459,35 @@ EOF
   echo "Add branch-required-status-checks once CI exists (see README.md)."
 }
 
-if [ -e "$DEST" ]; then
+# A destination that doesn't exist yet, or that exists but is empty (or
+# contains only a pre-existing .git/ - e.g. the destination was created and
+# git-init'd before scaffolding, a common workflow), is safe to scaffold into.
+# Anything else existing there means this looks like a re-run against an
+# already-scaffolded project.
+dest_needs_scaffold() {
+  [ ! -e "$DEST" ] && return 0
+  [ ! -d "$DEST" ] && return 1
+  local entry
+  for entry in "$DEST"/* "$DEST"/.[!.]* "$DEST"/..?*; do
+    [ -e "$entry" ] || continue
+    [ "$(basename "$entry")" = ".git" ] && continue
+    return 1
+  done
+  return 0
+}
+
+if dest_needs_scaffold; then
+  scaffold
+  if [ "$INIT_REPO" -eq 1 ]; then
+    init_repo
+  fi
+else
   if [ "$INIT_REPO" -eq 1 ]; then
     echo "Destination already exists - skipping scaffolding, going straight to GitHub setup."
     init_repo
   else
-    echo "Error: destination already exists: $DEST" >&2
+    echo "Error: destination already exists and is not empty: $DEST" >&2
     echo "Re-run with --init-repo to skip scaffolding and just push/configure GitHub." >&2
     exit 1
-  fi
-else
-  scaffold
-  if [ "$INIT_REPO" -eq 1 ]; then
-    init_repo
   fi
 fi

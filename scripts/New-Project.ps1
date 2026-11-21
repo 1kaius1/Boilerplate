@@ -8,7 +8,8 @@
     LICENSE + .gitignore before the first commit. Optionally creates and
     configures the GitHub repository too (-InitRepo).
 
-    First run: -Dest must not exist yet - it gets scaffolded, then the
+    First run: -Dest must not exist yet, or be empty (a pre-existing .git\
+    is fine) - it gets scaffolded, then the
     script stops and lists the <!-- description --> placeholders left to
     fill in by hand.
 
@@ -237,17 +238,17 @@ function Show-RemainingPlaceholders {
 
 function Invoke-Scaffold {
     Write-Host "Scaffolding $Type/$Language project at $Dest"
-    $destParent = Split-Path -Parent $Dest
-    if ($destParent -and -not (Test-Path $destParent)) {
-        New-Item -ItemType Directory -Path $destParent -Force | Out-Null
-    }
-    Copy-Item -Path (Join-Path $BoilerplateRoot $Type) -Destination $Dest -Recurse
-    # Merge Universal/ (including dotfiles) into the same destination
+    # New-Item -Force is a no-op if $Dest already exists (e.g. a directory
+    # that was pre-created and git-init'd before scaffolding). Both copies
+    # below use a trailing "\*" wildcard with -Force deliberately - Force is
+    # what makes wildcard expansion include hidden items like .claude/, and
+    # without the wildcard, Copy-Item would nest the whole source directory
+    # one level deep (Dest\WoW-AddOn\... instead of Dest\...) whenever $Dest
+    # already exists, since it only copies a directory itself into an
+    # *existing* target directory.
+    New-Item -ItemType Directory -Path $Dest -Force | Out-Null
+    Copy-Item -Path (Join-Path $BoilerplateRoot "$Type\*") -Destination $Dest -Recurse -Force
     Copy-Item -Path (Join-Path $BoilerplateRoot 'Universal\*') -Destination $Dest -Recurse -Force
-    $universalDotClaude = Join-Path $BoilerplateRoot 'Universal\.claude'
-    if (Test-Path $universalDotClaude) {
-        Copy-Item -Path $universalDotClaude -Destination $Dest -Recurse -Force
-    }
 
     Push-Location $Dest
     try {
@@ -418,17 +419,29 @@ function Invoke-InitRepo {
     }
 }
 
-if (Test-Path $Dest) {
+# A destination that doesn't exist yet, or that exists but is empty (or
+# contains only a pre-existing .git\ - e.g. it was created and git-init'd
+# before scaffolding, a common workflow), is safe to scaffold into. Anything
+# else existing there means this looks like a re-run against an
+# already-scaffolded project.
+function Test-DestNeedsScaffold {
+    if (-not (Test-Path $Dest)) { return $true }
+    if (-not (Test-Path $Dest -PathType Container)) { return $false }
+    $remaining = Get-ChildItem -Path $Dest -Force | Where-Object { $_.Name -ne '.git' }
+    return -not $remaining
+}
+
+if (Test-DestNeedsScaffold) {
+    Invoke-Scaffold
+    if ($InitRepo) {
+        Invoke-InitRepo
+    }
+} else {
     if ($InitRepo) {
         Write-Host 'Destination already exists - skipping scaffolding, going straight to GitHub setup.'
         Invoke-InitRepo
     } else {
-        Write-Error "Destination already exists: $Dest`nRe-run with -InitRepo to skip scaffolding and just push/configure GitHub."
+        Write-Error "Destination already exists and is not empty: $Dest`nRe-run with -InitRepo to skip scaffolding and just push/configure GitHub."
         exit 1
-    }
-} else {
-    Invoke-Scaffold
-    if ($InitRepo) {
-        Invoke-InitRepo
     }
 }
