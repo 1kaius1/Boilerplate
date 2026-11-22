@@ -195,7 +195,10 @@ function Get-License {
 }
 
 function Get-ProsePlaceholderFiles {
-    Get-ChildItem -Recurse -Filter '*.md' -File |
+    # -Force so hidden directories (.claude/) are searched too, matching the
+    # bash version's `grep -r .` - without it, placeholders under .claude/
+    # would never be reported.
+    Get-ChildItem -Recurse -Force -Filter '*.md' -File |
         Select-String -Pattern '<!-- ' -List |
         Select-Object -ExpandProperty Path |
         ForEach-Object { Resolve-Path -Relative $_ }
@@ -210,7 +213,7 @@ function Get-TokenPlaceholderFiles {
     # legal prose ("the Project Owner accepts...") - without it, every one
     # of those false-matches CLA.md as still containing the OWNER token.
     $pattern = '\b(OWNER|REPO|APP_NAME|PROJECT_OWNER_NAME|PROJECT_OWNER_EMAIL|GOVERNING_LAW_JURISDICTION|DISPUTE_RESOLUTION_JURISDICTION)\b'
-    Get-ChildItem -Recurse -File -Include '*.md', '*.json' |
+    Get-ChildItem -Recurse -Force -File -Include '*.md', '*.json' |
         Select-String -Pattern $pattern -List -CaseSensitive |
         Select-Object -ExpandProperty Path |
         ForEach-Object { Resolve-Path -Relative $_ }
@@ -304,7 +307,9 @@ function Invoke-Scaffold {
         # DisputeJurisdiction are optional - if not supplied, their tokens
         # are left alone so they surface in the remaining-placeholders check
         # instead of silently keeping a stale value.
-        $targets = Get-ChildItem -Recurse -File -Include '*.md', '*.json', '*.yaml', '*.yml'
+        # -Force so hidden directories (.claude/) get substituted too,
+        # matching the bash version's `find .`.
+        $targets = Get-ChildItem -Recurse -Force -File -Include '*.md', '*.json', '*.yaml', '*.yml'
         foreach ($f in $targets) {
             $content = Get-Content -Path $f.FullName -Raw
             if ($null -eq $content) { continue }
