@@ -113,16 +113,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 
 ---
 
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
-
----
-
 ## Current Focus
 
 See PLANNING.md for active goals, open questions, and pending decisions.

@@ -3,10 +3,18 @@
 Applies to every file in this project, regardless of language or project type.
 Claude Code loads this automatically - there is nothing to reference or open manually.
 
+Several of these rules are also enforced, not just stated, by `.claude/settings.json`
+and `.claude/hooks/`: force-push, pushing to master/main, `git reset --hard`, and
+`gh pr merge` are denied; committing on master/main is blocked by a hook; AI
+attribution is disabled; edited files are run through the language's formatter.
+If one of those blocks an action, do not look for a way around it - stop and tell
+the user.
+
 ## Character Usage
 
 - NEVER use emojis in any files (code, documentation, comments, commit messages)
-- NEVER use em-dashes (-) or en-dashes (-) - use regular hyphens (-) for all dash purposes
+- NEVER use em-dashes (U+2014) or en-dashes (U+2013) - use the regular ASCII hyphen-minus
+  (U+002D, `-`) for all dash purposes
 - Use standard ASCII characters only in code and comments
 - UTF-8 is acceptable for user-facing strings, but avoid decorative Unicode
 
@@ -46,6 +54,13 @@ Claude Code loads this automatically - there is nothing to reference or open man
 - Update ARCHITECTURE.md when structural changes are made
 - Update PLANNING.md when goals or decisions change
 
+## Changelog and Versioning
+
+- Format: Keep a Changelog (https://keepachangelog.com)
+- Versioning: Semantic Versioning (https://semver.org)
+- Unreleased changes go under `## [Unreleased]`
+- Do not create a new version entry - that is the maintainer's decision
+
 ## Git and Branch Workflow
 
 - NEVER commit or push directly to `master`
@@ -75,7 +90,7 @@ Claude Code loads this automatically - there is nothing to reference or open man
 
 ### Before Making Changes
 
-1. Read CLAUDE.md and ARCHITECTURE.md to understand the project
+1. Read ARCHITECTURE.md before structural work (CLAUDE.md is already loaded)
 2. Review existing code style in the project
 3. Confirm the approach with the user before starting non-trivial work
 

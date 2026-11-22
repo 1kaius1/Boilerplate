@@ -42,7 +42,10 @@ These files are identical across all project types. Copy them as-is.
 | `Universal/CLA.md` | Contributor License Agreement with copyright assignment and patent grant |
 | `Universal/.claude/rules/universal.md` | Cross-cutting Claude Code rules: git workflow, scope control, destructive-op confirmation, commit format, security baseline - applies regardless of language or type |
 | `Universal/.claude/rules/<language>.md` | Per-language rules (naming, path handling, license header syntax, dependency manifest) - one file per language (Go, Python, C#, BASH, PHP), auto-scoped by file extension via `paths:` frontmatter |
-| `Universal/.claude/settings.json` | Permission guardrails Claude Code actually enforces (blocks force-push and hard reset, requires confirmation before `rm -rf`) |
+| `Universal/.claude/settings.json` | Guardrails Claude Code actually enforces: denies force-push (in every flag/refspec form), pushing to `master`/`main`, `git reset --hard`, `gh pr merge`, and reading `.env`-style secret files; asks before `rm -rf` and `git clean`; turns off AI attribution in commits and PRs; wires up the two hooks below |
+| `Universal/.claude/hooks/block_default_branch_commit.sh` | `PreToolUse` hook that blocks `git commit` while on `master`/`main` - permission rules can match a command's text but not the branch it runs on |
+| `Universal/.claude/hooks/format_on_edit.sh` | `PostToolUse` hook that runs the language's formatter (gofmt, ruff, dotnet format, shellcheck, php-cs-fixer, stylua, gdformat) on each file Claude edits - each one optional, skipped if not installed |
+| `Universal/.claude/skills/ship/SKILL.md` | `/ship` skill: branch, CHANGELOG, tests, commit, push, PR - with the user approving every commit message, the PR text, and the push, and stopping before merge. User-invoked only |
 
 ### Per-Type Sets
 
@@ -106,10 +109,13 @@ files load automatically for every session, and `.claude/rules/<type>.md` does t
 same. `.claude/settings.json` goes one step further for the handful of rules that
 are load-bearing enough to deserve hard enforcement rather than a prose instruction -
 Claude Code's permission system can outright deny an action (force-push, `git reset
---hard`) or require explicit confirmation (`rm -rf`), independent of whether the
-model remembers the rule. Branch protection against direct pushes to `master` is
-still handled server-side via GitHub branch protection (see Repository Setup below) -
-that is the correct enforcement point for it, not a local permission rule.
+--hard`, `gh pr merge`, pushing to `master`) or require explicit confirmation
+(`rm -rf`), independent of whether the model remembers the rule. Where a permission
+rule can't see enough to decide - committing on `master` depends on the current
+branch, not the command text - a hook in `.claude/hooks/` does the check instead.
+GitHub branch protection (see Repository Setup below) remains the authoritative
+server-side guard against direct pushes to `master`; the local rules stop Claude
+before it gets that far, and also cover repos that have no protection configured yet.
 
 ---
 
@@ -259,7 +265,7 @@ files, pruning the ones you didn't pick, substituting every `OWNER`/`REPO`/`APP_
 open (see "Starting a New Project" below for what those gaps are).
 
 ```bash
-./scripts/new-project.sh --type CLI --language Go --dest ~/projects/my_tool \
+1./scripts/new-project.sh --type CLI --language Go --dest ~/projects/my_tool \
   --app-name my_tool --owner OWNER --repo my_tool
 ```
 
@@ -517,6 +523,11 @@ template does not reflect how a project type actually works, open an issue or a 
 request.
 
 Follow the same workflow described in `Universal/CONTRIBUTING.md`. The CLA applies.
+
+Changes to the scaffolders or templates should pass `scripts/test-scaffold.sh` (bash,
+git, and PowerShell 7 required). It runs every type/language combination through
+both scaffolders and checks that their output is identical. CI runs it on Linux and
+Windows. The root `CLAUDE.md` lists the invariants the two scripts must keep.
 
 ---
 

@@ -129,9 +129,6 @@ npm run test
 npm run test:e2e
 ```
 
-All tests must pass before committing or opening a pull request. Never suggest a PR
-with failing tests. If tests cannot be run, say so explicitly.
-
 ---
 
 ## Configuration and Environment Variables
@@ -216,16 +213,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 <!-- Example: -->
 <!-- Type hints required on all public functions -->
 ```
-
----
-
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
 
 ---
 

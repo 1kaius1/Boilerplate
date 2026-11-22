@@ -108,9 +108,6 @@ go test -race ./...
 # Document the test runner for UI automation here
 ```
 
-All tests must pass before committing or opening a pull request. Never suggest a PR
-with failing tests. If tests cannot be run, say so explicitly.
-
 Note: UI rendering tests may require a display. On headless systems use Xvfb or the
 toolkit's offscreen renderer where available.
 
@@ -200,16 +197,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 <!-- Example: -->
 <!-- All errors wrapped with fmt.Errorf("context: %w", err) -->
 ```
-
----
-
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
 
 ---
 

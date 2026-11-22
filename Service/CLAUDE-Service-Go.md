@@ -159,9 +159,6 @@ go tool cover -html=coverage.out
 # Example: docker compose up -d && go test ./tests/integration/...
 ```
 
-All tests must pass before committing or opening a pull request. Never suggest a PR
-with failing tests. If tests cannot be run, say so explicitly.
-
 ---
 
 ## Configuration and Data Storage
@@ -253,16 +250,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 <!-- All errors wrapped with fmt.Errorf("context: %w", err) -->
 <!-- context.Context is always the first argument -->
 ```
-
----
-
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
 
 ---
 

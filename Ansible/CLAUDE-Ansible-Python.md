@@ -113,9 +113,6 @@ ansible-lint
 molecule test
 ```
 
-All tests must pass before committing or opening a pull request. Never suggest a PR
-with failing tests. If tests cannot be run, say so explicitly.
-
 ---
 
 ## Secrets and Public-Repo Hygiene
@@ -151,16 +148,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 <!-- Example: -->
 <!-- All playbooks target one specific inventory group, never "all" -->
 ```
-
----
-
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
 
 ---
 

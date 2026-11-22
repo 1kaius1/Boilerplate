@@ -154,9 +154,6 @@ dotnet test --collect:"XPlat Code Coverage"
 # Example: docker compose up -d && dotnet test tests/AppName.IntegrationTests
 ```
 
-All tests must pass before committing or opening a pull request. Never suggest a PR
-with failing tests. If tests cannot be run, say so explicitly.
-
 ---
 
 ## Configuration and Data Storage
@@ -250,16 +247,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 <!-- Nullable reference types enabled project-wide -->
 <!-- CancellationToken is always the last parameter on async methods -->
 ```
-
----
-
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
 
 ---
 

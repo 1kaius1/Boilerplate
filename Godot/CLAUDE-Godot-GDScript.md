@@ -101,9 +101,6 @@ godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
 godot --headless -s addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests
 ```
 
-All tests must pass before committing or opening a pull request. Never suggest a PR
-with failing tests. If tests cannot be run, say so explicitly.
-
 ---
 
 ## Save Data and Settings
@@ -137,16 +134,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 <!-- Example: -->
 <!-- Signal bus pattern used for cross-system events - see autoload/EventBus.gd -->
 ```
-
----
-
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
 
 ---
 

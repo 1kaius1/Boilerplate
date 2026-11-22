@@ -107,9 +107,6 @@ app_name --config ~/.app_name/config.yaml do-something
 bash tests/run_tests.sh
 ```
 
-All tests must pass before committing or opening a pull request. Never suggest a PR
-with failing tests. If tests cannot be run, say so explicitly.
-
 ---
 
 ## Configuration and Data Storage
@@ -157,16 +154,6 @@ Behavioral rules and guardrails are auto-loaded from `.claude/rules/` - see
 - `--config` - path to config file override
 - Long flags preferred; short flags only for the most common options
 - Positional arguments documented clearly in `--help` output
-
----
-
-## Changelog and Versioning
-
-- Format: Keep a Changelog (https://keepachangelog.com)
-- Versioning: Semantic Versioning (https://semver.org)
-- CHANGELOG.md must be updated in the same commit as the change
-- Unreleased changes go under `## [Unreleased]`
-- Do not create a new version entry - that is the maintainer's decision
 
 ---
 
